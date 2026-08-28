@@ -1,0 +1,145 @@
+{
+  "fixture_set_id": "demo-scenarios-v1",
+  "notice": "Synthetic demonstration fixtures. No real product, line, batch or inspection data. The pinned detector outputs are fixtures, not model performance: they exist so the demo and the tests produce the same result on every machine and on a conference network with no connectivity.",
+  "scenarios": [
+    {
+      "id": "clean-unit",
+      "name": "Clean unit",
+      "narrative": "Nothing is wrong. The platform still records evidence, because a transaction with no finding is exactly the one nobody can reconstruct later.",
+      "frame_seed": "demo-frame-clean-0001",
+      "line_id": "DEMO-L1",
+      "station_id": "ST-04",
+      "product_sku": "SKU-88421",
+      "batch_id": "BATCH-2026-0731",
+      "classification": "internal",
+      "batch_defect_count": 0,
+      "pinned_label": "no_defect",
+      "pinned_confidence": 0.968,
+      "expects": {
+        "policy_rule": "R010-no-defect",
+        "disposition": "log_only",
+        "approval_required": false
+      }
+    },
+    {
+      "id": "cosmetic",
+      "name": "Cosmetic finding",
+      "narrative": "A real defect that deliberately does not require approval. Approval on low-impact actions trains approvers to click through the ones that matter.",
+      "frame_seed": "demo-frame-cosmetic-0002",
+      "line_id": "DEMO-L1",
+      "station_id": "ST-04",
+      "product_sku": "SKU-88421",
+      "batch_id": "BATCH-2026-0731",
+      "classification": "internal",
+      "batch_defect_count": 0,
+      "pinned_label": "surface_scratch",
+      "pinned_confidence": 0.791,
+      "expects": {
+        "policy_rule": "R060-cosmetic",
+        "disposition": "log_only",
+        "approval_required": false
+      }
+    },
+    {
+      "id": "low-confidence",
+      "name": "Low-confidence signal",
+      "narrative": "The detector did not clear its own threshold. The platform re-inspects rather than raising a work order on a signal the model does not stand behind.",
+      "frame_seed": "demo-frame-lowconf-0003",
+      "line_id": "DEMO-L2",
+      "station_id": "ST-11",
+      "product_sku": "SKU-77310",
+      "batch_id": "BATCH-2026-0732",
+      "classification": "internal",
+      "batch_defect_count": 0,
+      "pinned_label": "weld_porosity",
+      "pinned_confidence": 0.412,
+      "expects": {
+        "policy_rule": "R020-low-confidence",
+        "disposition": "re_inspect",
+        "approval_required": false
+      }
+    },
+    {
+      "id": "major-defect",
+      "name": "Safety-relevant major defect",
+      "narrative": "The hero path. Evidence, a deterministic verdict, a held approval, and a write that only happens after a named human agrees to this exact proposal.",
+      "frame_seed": "demo-frame-seal-0004",
+      "line_id": "DEMO-L1",
+      "station_id": "ST-07",
+      "product_sku": "SKU-88421",
+      "batch_id": "BATCH-2026-0733",
+      "classification": "internal",
+      "batch_defect_count": 1,
+      "pinned_label": "seal_gap",
+      "pinned_confidence": 0.881,
+      "expects": {
+        "policy_rule": "R040-safety-relevant-major",
+        "disposition": "maintenance_work_order",
+        "approval_required": true,
+        "approver_role": "maintenance_lead"
+      }
+    },
+    {
+      "id": "repeat-major",
+      "name": "Repeated major defect in batch",
+      "narrative": "The same defect recurring in one batch is a process fault, not a unit fault. Policy escalates from a work order to a line stop without anyone rewriting a prompt.",
+      "frame_seed": "demo-frame-repeat-0005",
+      "line_id": "DEMO-L1",
+      "station_id": "ST-07",
+      "product_sku": "SKU-88421",
+      "batch_id": "BATCH-2026-0733",
+      "classification": "internal",
+      "batch_defect_count": 4,
+      "pinned_label": "seal_gap",
+      "pinned_confidence": 0.903,
+      "expects": {
+        "policy_rule": "R035-repeat-major-in-batch",
+        "disposition": "stop_line",
+        "approval_required": true,
+        "approver_role": "plant_manager",
+        "dual_control_required": true
+      }
+    },
+    {
+      "id": "critical-defect",
+      "name": "Critical structural defect",
+      "narrative": "The highest-consequence path: line stop, quarantine, dual control. Two distinct principals must approve before anything is written.",
+      "frame_seed": "demo-frame-crack-0006",
+      "line_id": "DEMO-L3",
+      "station_id": "ST-02",
+      "product_sku": "SKU-91055",
+      "batch_id": "BATCH-2026-0740",
+      "classification": "internal",
+      "batch_defect_count": 0,
+      "pinned_label": "structural_crack",
+      "pinned_confidence": 0.942,
+      "expects": {
+        "policy_rule": "R030-structural-crack",
+        "disposition": "stop_line",
+        "approval_required": true,
+        "approver_role": "plant_manager",
+        "dual_control_required": true
+      }
+    },
+    {
+      "id": "restricted-classification",
+      "name": "Restricted-classification frame",
+      "narrative": "A cosmetic finding that would normally auto-log. Guard G002 fires on the classification alone and forces a human to look at it.",
+      "frame_seed": "demo-frame-restricted-0007",
+      "line_id": "DEMO-L4",
+      "station_id": "ST-19",
+      "product_sku": "SKU-60002",
+      "batch_id": "BATCH-2026-0751",
+      "classification": "restricted",
+      "batch_defect_count": 0,
+      "pinned_label": "misalignment",
+      "pinned_confidence": 0.844,
+      "expects": {
+        "policy_rule": "R050-misalignment",
+        "disposition": "maintenance_work_order",
+        "approval_required": true,
+        "guard": "G002-restricted-classification"
+      }
+    }
+  ]
+}

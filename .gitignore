@@ -1,0 +1,125 @@
+# ---------------------------------------------------------------------------
+# ready-enterprise-ai-platform
+#
+# The rules that matter most are the last three sections: secrets, generated
+# evidence, and local runtime state. A committed .env, or an evaluation report
+# containing real retrieved content, is the failure this file exists to prevent.
+# ---------------------------------------------------------------------------
+
+# --- Python ----------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+wheels/
+*.egg-info/
+.eggs/
+sdist/
+develop-eggs/
+downloads/
+eggs/
+.installed.cfg
+*.egg
+MANIFEST
+
+# --- Environments ----------------------------------------------------------
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# --- Tooling caches --------------------------------------------------------
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+
+# --- Node / frontend -------------------------------------------------------
+node_modules/
+apps/web/dist/
+apps/web/.vite/
+apps/web/coverage/
+apps/web/playwright-report/
+apps/web/test-results/
+*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- Editors ---------------------------------------------------------------
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+# .vscode is committed deliberately: the shared launch and settings config is
+# part of the developer experience. Personal overrides are excluded.
+.vscode/*.local.json
+.vscode/settings.local.json
+
+# --- Secrets and credentials ----------------------------------------------
+# Nothing in this project needs a committed secret. Azure and production modes
+# authenticate with managed identity; Key Vault resolves the rest at runtime.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+*.publishsettings
+azureauth.json
+credentials.json
+**/local.settings.json
+.azure/
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+
+# --- Model artifacts -------------------------------------------------------
+# This repository ships no weights and downloads none. Anything an operator
+# supplies locally stays local.
+*.onnx
+*.pt
+*.pth
+*.safetensors
+*.h5
+models/local/
+
+# --- Generated evidence ----------------------------------------------------
+# Evaluation reports and audit receipts can contain retrieved content, so they
+# are produced into ignored paths and attached to a release from CI instead.
+.reap-state/
+logs/*
+!logs/.gitkeep
+reports/
+eval-reports/
+*.evidence.json
+sbom.json
+sbom.*.json
+bandit-report.json
+pip-audit-report.json
+
+# --- Demo capture ----------------------------------------------------------
+docs/demo/recordings/*
+!docs/demo/recordings/.gitkeep
+
+# --- Source material -------------------------------------------------------
+# Session decks live with the presentation, not in the reference implementation.
+*.pdf
+!docs/**/*.pdf

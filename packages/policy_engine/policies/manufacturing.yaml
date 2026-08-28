@@ -1,0 +1,185 @@
+# Deterministic disposition policy for the manufacturing quality workflow.
+#
+# This file is the authoritative source of the verdict. It is versioned,
+# hash-stamped onto every decision, unit-tested at its boundaries, and executed
+# by code in `packages/policy_engine`. No language model reads it, and no
+# language model can change its result.
+#
+# Evaluation is ordered first-match-wins. Ordering is therefore part of the
+# contract: a rule cannot be reordered without a version bump and a test change.
+
+version: "2.5.0"
+description: >-
+  Severity, disposition, approval and permitted-action policy for surface and
+  structural defect detection on synthetic lines DEMO-L1 through DEMO-L4.
+
+defaults:
+  severity: minor
+  disposition: re_inspect
+  approval_required: true
+  approver_role: quality_supervisor
+  permitted_actions: [schedule_inspection]
+  reason_code: DEFAULT_CONSERVATIVE
+  # An unmatched input is treated conservatively rather than permissively.
+  # A policy whose default is "allow" is not a control.
+
+# Confidence below this floor means the signal is not trustworthy enough to act
+# on, regardless of which label was predicted.
+low_confidence_floor: 0.62
+
+rules:
+  - id: R001-killswitch
+    description: Administrative disable overrides every other rule.
+    when:
+      kill_switch_engaged: true
+    then:
+      allowed: false
+      severity: none
+      disposition: no_action
+      approval_required: false
+      permitted_actions: []
+      reason_code: KILL_SWITCH_ENGAGED
+
+  - id: R010-no-defect
+    description: Clean unit above threshold; nothing to do beyond logging.
+    when:
+      label: no_defect
+      confidence_at_or_above_threshold: true
+    then:
+      allowed: true
+      severity: none
+      disposition: log_only
+      approval_required: false
+      permitted_actions: []
+      reason_code: NO_DEFECT_DETECTED
+
+  - id: R020-low-confidence
+    description: >-
+      Below the decision threshold the detector has not established a defect.
+      Re-inspect rather than act; do not escalate to a work order on a signal
+      the model itself does not stand behind.
+    when:
+      confidence_at_or_above_threshold: false
+    then:
+      allowed: true
+      severity: minor
+      disposition: re_inspect
+      approval_required: false
+      permitted_actions: [schedule_inspection]
+      reason_code: BELOW_DECISION_THRESHOLD
+
+  - id: R030-structural-crack
+    description: >-
+      Safety-relevant structural defect. Line stop plus quarantine, dual
+      control, and the highest approval authority on the line.
+    when:
+      label: structural_crack
+      confidence_at_or_above_threshold: true
+    then:
+      allowed: true
+      severity: critical
+      disposition: stop_line
+      approval_required: true
+      approver_role: plant_manager
+      dual_control_required: true
+      permitted_actions: [quarantine_batch, create_incident, notify_supervisor]
+      reason_code: CRITICAL_SAFETY_DEFECT
+      obligations:
+        - id: OB-EVIDENCE-AUTHORITATIVE
+          description: Disposition must cite an authoritative maintenance standard.
+          satisfied_by: retrieval
+        - id: OB-DUAL-CONTROL
+          description: Two distinct principals must approve before any write.
+          satisfied_by: approvals
+
+  # Numbered below R040 deliberately. Both rules match a safety-relevant major
+  # defect, and under first-match-wins the more specific one must be evaluated
+  # first or it is unreachable. Rule ids are declared in ascending order, so
+  # precedence is visible in the file rather than hidden in the loader.
+  # The evaluation gate caught this ordering the first time it ran; EDGE-012
+  # exists to keep it caught.
+  - id: R035-repeat-major-in-batch
+    description: >-
+      A major defect recurring within the same batch indicates a process fault
+      rather than a unit fault, so the line is stopped rather than the unit
+      being individually dispositioned.
+    when:
+      label_in: [seal_gap, weld_porosity]
+      confidence_at_or_above_threshold: true
+      batch_defect_count_at_least: 3
+    then:
+      allowed: true
+      severity: critical
+      disposition: stop_line
+      approval_required: true
+      approver_role: plant_manager
+      dual_control_required: true
+      permitted_actions: [quarantine_batch, create_incident, notify_supervisor]
+      reason_code: REPEATED_MAJOR_DEFECT_IN_BATCH
+
+  - id: R040-safety-relevant-major
+    description: Seal and weld integrity defects; quarantine and raise a work order.
+    when:
+      label_in: [seal_gap, weld_porosity]
+      confidence_at_or_above_threshold: true
+    then:
+      allowed: true
+      severity: major
+      disposition: maintenance_work_order
+      approval_required: true
+      approver_role: maintenance_lead
+      permitted_actions: [create_work_order, quarantine_batch, notify_supervisor]
+      reason_code: SAFETY_RELEVANT_MAJOR_DEFECT
+      obligations:
+        - id: OB-EVIDENCE-AUTHORITATIVE
+          description: Disposition must cite an authoritative maintenance standard.
+          satisfied_by: retrieval
+
+  - id: R050-misalignment
+    description: Positional tolerance breach; work order without quarantine.
+    when:
+      label: misalignment
+      confidence_at_or_above_threshold: true
+    then:
+      allowed: true
+      severity: minor
+      disposition: maintenance_work_order
+      approval_required: true
+      approver_role: quality_supervisor
+      permitted_actions: [create_work_order, schedule_inspection]
+      reason_code: POSITIONAL_TOLERANCE_BREACH
+
+  - id: R060-cosmetic
+    description: >-
+      Cosmetic findings are recorded, not actioned. Approval on low-impact
+      actions trains approvers to click through the ones that matter.
+    when:
+      label_in: [surface_scratch, discoloration]
+      confidence_at_or_above_threshold: true
+    then:
+      allowed: true
+      severity: cosmetic
+      disposition: log_only
+      approval_required: false
+      permitted_actions: [notify_supervisor]
+      reason_code: COSMETIC_FINDING_LOGGED
+
+# Guards run after a rule matches and can only ever narrow the outcome.
+# They exist so a future rule edit cannot accidentally widen authority.
+guards:
+  - id: G001-no-write-without-approval
+    description: Any disposition that mutates a system of record requires approval.
+    dispositions: [maintenance_work_order, quarantine, stop_line]
+    enforce_approval_required: true
+
+  - id: G002-restricted-classification
+    description: Restricted-classification frames never auto-action.
+    max_classification_for_auto_action: confidential
+    reason_code: RESTRICTED_CLASSIFICATION_REQUIRES_APPROVAL
+
+  - id: G003-stale-evidence
+    description: >-
+      A disposition may not rest on evidence past its freshness SLO. The action
+      is still permitted, but a human must look at it.
+    enforce_approval_when_evidence_stale: true
+    reason_code: STALE_EVIDENCE_REQUIRES_APPROVAL

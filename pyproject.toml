@@ -1,0 +1,200 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ready-enterprise-ai-platform"
+version = "0.1.0"
+description = "Reference implementation for 'Beyond the Agent': an Enterprise AI platform where specialized models detect, retrieval grounds, policy decides, humans approve, and one scoped writer acts."
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+license = { text = "MIT" }
+authors = [{ name = "Brittany Pugh" }]
+keywords = ["azure", "enterprise-ai", "mlops", "governance", "evaluation", "observability"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+  "fastapi>=0.141.1",
+  "uvicorn[standard]>=0.52.4",
+  "pydantic>=2.13.4",
+  "pydantic-settings>=2.15.0",
+  "httpx>=0.28.1",
+  "tenacity>=9.1.4",
+  "pyyaml>=6.0.3",
+  "orjson>=3.12.0",
+  "python-multipart>=0.0.32",
+  # Ceiling is set by azure-monitor-opentelemetry, which pins the SDK to a
+  # single minor line. Raising it here without raising the exporter breaks the
+  # Azure extra, so the two move together and the bound is deliberate.
+  "opentelemetry-api>=1.43.0,<1.44",
+  "opentelemetry-sdk>=1.43.0,<1.44",
+  # Instrumentation packages ship on a beta version line by upstream
+  # convention; the explicit prerelease bound is what makes the resolver accept
+  # them without globally enabling prereleases. 0.64b0 pairs with SDK 1.43.
+  "opentelemetry-instrumentation-fastapi>=0.64b0,<0.65",
+  "opentelemetry-instrumentation-httpx>=0.64b0,<0.65",
+]
+
+[project.optional-dependencies]
+azure = [
+  "azure-identity>=1.25.3",
+  "azure-keyvault-secrets>=4.11.2",
+  "azure-search-documents>=12.0.0",
+  "azure-servicebus>=7.14.3",
+  "azure-monitor-opentelemetry>=1.8.9",
+  "openai>=3.4.0",
+]
+aml = [
+  "azure-ai-ml>=1.34.1",
+]
+onnx = [
+  "onnxruntime>=1.29.0",
+  "numpy>=2.5.2",
+  "pillow>=12.3.0",
+]
+dev = [
+  "pytest>=9.1.1",
+  "pytest-asyncio>=1.4.0",
+  "pytest-cov>=7.1.0",
+  "respx>=0.23.1",
+  "ruff>=0.16.4",
+  "mypy>=2.3.1",
+  "types-pyyaml>=6.0.12",
+  "bandit>=1.9.4",
+  "pip-audit>=2.10.1",
+]
+
+[project.scripts]
+reap = "cli.main:main"
+
+[project.urls]
+Homepage = "https://github.com/honestypugh2/ready-enterprise-ai-platform"
+Documentation = "https://github.com/honestypugh2/ready-enterprise-ai-platform/tree/main/docs"
+
+# ---------------------------------------------------------------------------
+# Build layout
+#
+# `packages/` is the single Python source root. Each subdirectory is an
+# independently reviewable architecture plane installed as a top-level module.
+# See docs/adr/0018-monorepo-package-layout.md for the collision review that
+# accompanied this decision.
+# ---------------------------------------------------------------------------
+[tool.hatch.build.targets.wheel]
+packages = [
+  "packages/contracts",
+  "packages/detector",
+  "packages/predictive_models",
+  "packages/events",
+  "packages/model_router",
+  "packages/retrieval",
+  "packages/reasoning",
+  "packages/workflows",
+  "packages/policy_engine",
+  "packages/approvals",
+  "packages/connectors",
+  "packages/audit",
+  "packages/observability",
+  "packages/evaluation",
+  "packages/security",
+  "packages/cost_attribution",
+  "packages/platform_config",
+  "packages/readyai",
+  "packages/cli",
+  "apps/api",
+  "apps/worker",
+]
+
+[tool.uv]
+package = true
+default-groups = []
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "-q --strict-markers --strict-config"
+markers = [
+  "integration: requires a live Azure dependency; skipped unless REAP_RUN_INTEGRATION=1",
+  "load: load/soak harness; skipped unless REAP_RUN_LOAD=1",
+  "evals: evaluation gate suite",
+]
+filterwarnings = ["error::DeprecationWarning:packages.*"]
+
+[tool.coverage.run]
+source = ["packages", "apps"]
+omit = ["*/tests/*", "*/__main__.py"]
+
+[tool.coverage.report]
+exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:", "raise NotImplementedError", "\\.\\.\\."]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["packages", "apps", "tests"]
+
+[tool.ruff.lint]
+select = [
+  "E", "F", "W",      # pycodestyle / pyflakes
+  "I",                 # isort
+  "N",                 # pep8-naming
+  "UP",                # pyupgrade
+  "B",                 # bugbear
+  "A",                 # builtins shadowing
+  "C4",                # comprehensions
+  "DTZ",               # timezone-aware datetimes
+  "T20",               # no print in library code
+  "SIM",               # simplify
+  "PTH",               # pathlib
+  "RUF",
+  "S",                 # bandit-style security rules
+  "ASYNC",
+  # Lazy imports are deliberate at optional-dependency boundaries. Enabling the
+  # rule makes each one an explicit, reviewed exception rather than a habit.
+  "PLC0415",
+]
+ignore = [
+  "S101",  # assert is expected in tests
+  "B008",  # FastAPI Depends() in defaults is idiomatic
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S", "T20"]
+"scripts/**" = ["T20", "S603", "S607"]
+"packages/cli/**" = ["T20"]
+
+[tool.ruff.lint.isort]
+known-first-party = [
+  "contracts", "detector", "predictive_models", "events", "model_router",
+  "retrieval", "reasoning", "workflows", "policy_engine", "approvals",
+  "connectors", "audit", "observability", "evaluation", "security",
+  "cost_attribution", "platform_config", "readyai", "cli", "api", "worker",
+]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = "packages:apps"
+namespace_packages = true
+explicit_package_bases = true
+warn_unreachable = true
+disallow_any_generics = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["tests.*", "scripts.*"]
+disallow_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = [
+  "azure.*", "onnxruntime.*", "openai.*", "opentelemetry.*", "respx.*",
+]
+ignore_missing_imports = true
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv", "node_modules"]

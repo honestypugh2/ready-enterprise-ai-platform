@@ -1,0 +1,60 @@
+{
+  "workload_id": "manufacturing-quality",
+  "workload_name": "Governed manufacturing quality and maintenance workflow (reference implementation)",
+  "assessed_by": "platform-engineering",
+  "assessed_on": "2026-08-27",
+  "risk_tier": "high",
+  "gate_minimum": 60.0,
+  "minimum_critical_level": 2,
+  "notes": "This is an honest self-assessment of the reference implementation in this repository, not of a customer deployment. It deliberately FAILS its own release gate. A reference implementation that scored itself production-ready would be the exact failure mode the framework exists to catch, and the gap list below is more useful to a reader than a green tick would be.",
+  "scores": [
+    {
+      "dimension": "retrieval_strategy",
+      "level": 2,
+      "evidence": "Hybrid local retrieval with query-time entitlement trimming; authority, freshness SLO and classification carried per passage; citation validation runs at request time and in the gate; tests/security covers ACL trimming and injected content.",
+      "gap": "No production index. Freshness is a field on a fixture rather than a monitored SLO per source, and there is no deletion path proven end to end from source system to index.",
+      "owner": "data-platform",
+      "due": "2026-10-15"
+    },
+    {
+      "dimension": "evaluation_framework",
+      "level": 2,
+      "evidence": "Versioned dataset (16 cases: golden, edge, adversarial, negative, regression) executed against the real workflow, seven blocking graders with thresholds, release gate wired into CI. The gate found two genuine defects on first run.",
+      "gap": "Offline only. No online evaluation of sampled production traces, no canary comparison, and the model-based groundedness grader is uncalibrated so it is excluded from the blocking set.",
+      "owner": "quality-platform-team",
+      "due": "2026-11-01"
+    },
+    {
+      "dimension": "architecture_design",
+      "level": 2,
+      "evidence": "Nine planes with contract-only coupling enforced by a boundary test; explicit terminating workflow with a step budget and kill switch; sole scoped writer with idempotency and approval binding; failure modes enumerated and injected in tests.",
+      "gap": "No capacity model derived from measured throughput, and disaster recovery is documented rather than exercised. Rollback restores container revisions but has not been rehearsed against model, prompt and index versions together.",
+      "owner": "platform-engineering",
+      "due": "2026-10-30"
+    },
+    {
+      "dimension": "data_governance",
+      "level": 1,
+      "evidence": "Classification travels with every payload and passage; retention and deletion documented; corpus is entirely synthetic with a declared authority statement and owner.",
+      "gap": "No Microsoft Purview classification or lineage wired in. Authority is asserted in a fixture rather than inherited from a governed source, and no authoritative source has a named business owner.",
+      "owner": "data-governance",
+      "due": "2026-12-01"
+    },
+    {
+      "dimension": "yield_operations",
+      "level": 1,
+      "evidence": "Cost ledger attributes spend across nine service categories per transaction and reports cost per completed task; structured logging and health, readiness and liveness endpoints exist.",
+      "gap": "Cost units are dimensionless demonstration units, not metered Azure spend. No service objectives are monitored, no alerts are bound to objectives, and there is no on-call rotation or incident runbook in force for a running instance.",
+      "owner": "sre",
+      "due": "2026-12-15"
+    },
+    {
+      "dimension": "ai_trust_overlay",
+      "level": 2,
+      "evidence": "Distinct workload identity per component; managed identity only, no code path accepts a connection string; redaction applied before telemetry is written; retrieved content treated as untrusted; threat model covers injection, excessive agency, exfiltration and replay; approval binding verified by proposal fingerprint.",
+      "gap": "Private endpoints and network isolation are expressed in Bicep but not deployed or validated in a subscription. No independent security review or red-team exercise has been performed, and telemetry redaction has not been tested against a production-shaped payload.",
+      "owner": "security-architecture",
+      "due": "2026-11-15"
+    }
+  ]
+}
