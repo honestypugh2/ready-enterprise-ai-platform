@@ -43,7 +43,7 @@ is shown, it is a count of something the test suite measured on this machine.
 | Demo | `reap demo run --scenario <all 7>` | All 7 scenarios complete, audit chains verify |
 | Dependency audit | `pip-audit --skip-editable --strict` | No known vulnerabilities |
 | Frontend | `npm run lint && typecheck && test && build` | Clean, 2 tests, builds; `npm audit` reports 0 vulnerabilities |
-| Bicep | `make infra-lint` | 13 templates + 3 parameter files compile clean |
+| Bicep | `make infra-lint` | 15 templates + 3 parameter files compile clean |
 | Compose | `docker compose config` | Valid, 3 services |
 
 **What was never run:** anything against Azure. No Bicep has been deployed, no
@@ -206,16 +206,18 @@ no Service Bus message published, no App Insights trace exported.
 
 | Component | Status |
 |---|---|
-| `infra/` Bicep | **Complete, never deployed** — 13 templates compile clean. Nothing has been applied to a subscription. |
+| `infra/` Bicep | **Complete, never deployed** — 15 templates compile clean. Nothing has been applied to a subscription. |
 | `infra/environments/{dev,test,prod}` | **Complete, never deployed** — all three validate. Owner, cost centre and publisher are `CHANGE-ME` placeholders by design. |
 | `infra/apim/ai-gateway.policy.xml` | **Complete, never applied** — token limits, per-user cost attribution, egress hygiene. The Entra path needs an app registration that this subscription may not permit. |
 | `infra/monitor/queries/*.kql` | **Complete, never executed** — six queries written against the schema the platform emits. Not one has been run against a real workspace. |
-| Private endpoints and DNS zones | **Not implemented** — prod disables public access but provisions no private endpoints, so **deploying prod as written produces resources nothing can reach**. |
+| Private endpoints and DNS zones | **Complete, never deployed** — VNet, three subnets, NSGs, ten private DNS zones and endpoints for storage, Key Vault, Search, Foundry, Service Bus, AML and ACR. Derived from the environment, so a prod deployment cannot omit them. |
 | Terraform parity | **Not implemented** |
 | `Dockerfile` | **Written, build unverified** — the image build fails on this machine because buildkit cannot reach PyPI (runtime containers resolve it fine). A local container-networking fault, not a template defect, but it means the image has never been built. |
 | `docker-compose.yml` | **Config-validated, never run** — depends on the image above. Read-only root filesystem, dropped capabilities, loopback-only ports. |
 | `.devcontainer/` | **Not implemented** |
-| `.github/workflows/` CI | **Not implemented** — `make check` and `make eval` are not yet enforced on a pull request |
+| `.github/workflows/` CI | **Complete** — `ci.yml` (lint, types, every suite, coverage, all seven demo scenarios, frontend, container build + liveness), `security.yml` (pip-audit, npm audit, bandit, secret scan over full history, CodeQL, SBOM, weekly schedule), `eval.yml` (release gate as its own status check), `infra.yml` (compile + what-if via workload identity federation). **Never executed on GitHub** — every command was run locally, the workflows themselves have not run. |
+| `.github/dependabot.yml` | **Complete** — uv, npm, actions and docker, grouped weekly |
+| `SECURITY.md`, `CONTRIBUTING.md` | **Complete** |
 | `azure.yaml` (azd) | **Not implemented** |
 | `scripts/scan-secrets.sh` | **Complete** — runs in git mode, found one true positive on first execution |
 | `scripts/validate-bicep.sh` | **Complete and exercised** — validates 13 templates and 3 parameter files |
@@ -244,8 +246,8 @@ Ordered by what would hurt first in a pilot.
 1. **Approvals are not durably stored.** A restart loses pending approvals. Everything else in the governance chain depends on this record existing.
 2. **No authentication.** The API identifies callers by an HTTP header. This is labelled in code and in this document, and it is the first thing to replace.
 3. **No real system-of-record connector.** The refusal chain is proven; the integration is not built.
-4. **No CI.** The release gate exists as a command, not as an enforced check.
-5. **Prod networking is incomplete.** The prod parameters disable public access on every resource but provision no private endpoints or DNS zones, so `--env prod` as written produces resources nothing can reach. Dev and test are coherent; prod is not yet deployable.
+4. **Nothing has been deployed.** Fifteen templates compile and three parameter files validate. Not one resource exists, so every infrastructure claim above is a claim about source code.
+5. **The evaluation scores describe the harness.** They are measured against a deterministic mock reasoner and a lexical retriever, and must be re-baselined entirely after the first live run.
 
 ---
 

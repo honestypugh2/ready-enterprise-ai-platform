@@ -15,6 +15,8 @@ infra/
 ├── types.bicep                 shared user-defined types and role definition ids
 ├── modules/
 │   ├── monitor.bicep           Log Analytics, App Insights, the unapproved-write alert
+│   ├── network.bicep           VNet, three subnets, NSGs, ten private DNS zones
+│   ├── privateendpoints.bicep  one file that is the whole network posture
 │   ├── identity.bicep          one user-assigned identity per component
 │   ├── keyvault.bicep          RBAC-only, purge protection in prod
 │   ├── storage.bicep           evidence + audit containers, immutability policy
@@ -78,6 +80,21 @@ governed explanation can return evidence retrieved for a different transaction
 under a different entitlement. Enable it per route, only where responses carry
 no entitlement-scoped content.
 
+**Private networking is derived, not requested.** `deployPrivateNetworking` is
+an opt-in for dev and test, but `main.bicep` computes
+`environment == 'prod' || deployPrivateNetworking`. Prod disables public access
+on every resource; a prod deployment without private endpoints succeeds and
+produces an environment that cannot serve a request. That combination is not
+reachable through a parameter file.
+
+**Private endpoints live in one module.** The set of endpoints *is* the network
+posture. Scattering them across the service modules means no single file
+answers "what can this workload reach, and what can reach it".
+
+**Every endpoint has a DNS zone group.** An endpoint without one resolves to the
+public name and then fails on the firewall — the most common private-endpoint
+misconfiguration and the least obvious to diagnose.
+
 **The AML online endpoint is not provisioned here.** An endpoint without a
 registered model deploys an empty shell that reports healthy and scores nothing,
 which is worse than its absence. Deploy it from the model's own pipeline.
@@ -93,7 +110,9 @@ pretending the platform is running.
 | `Microsoft.CognitiveServices/accounts/projects` | GA surface, evolving. Verify against your subscription's available API versions before deploying. |
 | Entra JWT validation at the gateway | **Requires an app registration** for `entra-audience`. APIM resolves named values at apply time, so the policy can only be applied after they exist. Until then the gateway attributes by header and subscription id. |
 | APIM Developer tier | Provisions in roughly 45 minutes. `deployApiGateway` is off by default outside prod for that reason. |
-| Private endpoints | Public access is disabled in prod, but the private endpoints and DNS zones are **not yet in this template**. Deploying prod as-is produces resources nothing can reach. |
+| APIM `Internal` VNet mode | **Premium only.** With private networking on a non-Premium tier the gateway stays `External`; the template does this rather than failing, and this table is where that is stated. |
+| Reaching a private environment | With `deployPrivateNetworking`, Container Apps ingress is internal and every data-plane endpoint is private. You will need a jump host, VPN or ExpressRoute to reach any of it — including to run `reap doctor`. |
+| Container image pull over a private registry | The ACR private endpoint is provisioned, but Container Apps needs the registry reachable at pull time. Verify the managed identity has `AcrPull` **before** switching to a private image, or the revision fails to start with a misleading error. |
 
 ## Attribution
 

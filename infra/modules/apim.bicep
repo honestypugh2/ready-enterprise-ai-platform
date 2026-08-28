@@ -34,7 +34,11 @@ param entraOpenIdConfig string = ''
 @description('Application ID URI of the app registration fronting this API.')
 param entraAudience string = ''
 
+@description('APIM subnet. Empty deploys without VNet integration. Only Premium supports Internal mode, so a non-Premium tier stays External and says so.')
+param apimSubnetId string = ''
+
 var isPremium = environment == 'prod'
+var vnetIntegrated = !empty(apimSubnetId)
 
 resource apim 'Microsoft.ApiManagement/service@2024-06-01-preview' = {
   name: '${namePrefix}-apim'
@@ -48,7 +52,8 @@ resource apim 'Microsoft.ApiManagement/service@2024-06-01-preview' = {
   properties: {
     publisherEmail: publisherEmail
     publisherName: publisherName
-    virtualNetworkType: 'None'
+    virtualNetworkType: vnetIntegrated ? (isPremium ? 'Internal' : 'External') : 'None'
+    virtualNetworkConfiguration: vnetIntegrated ? { subnetResourceId: apimSubnetId } : null
     publicNetworkAccess: 'Enabled'
     customProperties: {
       'Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Protocol.Tls10': 'False'

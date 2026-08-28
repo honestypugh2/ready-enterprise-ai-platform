@@ -16,3 +16,8 @@ param deployMachineLearning = true
 
 // Test exercises the real write path against non-production systems of record.
 param connectorDryRun = false
+
+// Test mirrors the prod network posture, because a gate that passes against
+// public endpoints has not tested the thing prod actually runs.
+param deployPrivateNetworking = true
+param vnetAddressPrefix = '10.43.0.0/16'

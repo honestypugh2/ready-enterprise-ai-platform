@@ -32,6 +32,15 @@ param frontierModelDeployment string
 @description('Dry run stays on until a named operator turns it off for a named environment. The default must never be the permissive one.')
 param connectorDryRun bool = true
 
+@description('Delegated subnet for the managed environment. Empty deploys without VNet integration.')
+param infrastructureSubnetId string = ''
+
+var vnetIntegrated = !empty(infrastructureSubnetId)
+
+// With VNet integration the API is reachable only from inside the network, so
+// the gateway becomes the front door rather than an optional extra.
+var externalIngress = !vnetIntegrated
+
 var minReplicas = environment == 'prod' ? 2 : 1
 var maxReplicas = environment == 'prod' ? 10 : 3
 
@@ -63,6 +72,12 @@ resource managedEnvironment 'Microsoft.App/managedEnvironments@2025-01-01' = {
       }
     }
     zoneRedundant: environment == 'prod'
+    vnetConfiguration: vnetIntegrated
+      ? {
+          infrastructureSubnetId: infrastructureSubnetId
+          internal: true
+        }
+      : null
   }
 }
 
@@ -79,7 +94,7 @@ resource api 'Microsoft.App/containerApps@2025-01-01' = {
     configuration: {
       activeRevisionsMode: 'Single'
       ingress: {
-        external: true
+        external: externalIngress
         targetPort: 8000
         transport: 'http'
         allowInsecure: false
@@ -161,6 +176,7 @@ resource worker 'Microsoft.App/containerApps@2025-01-01' = {
 }
 
 output apiFqdn string = api.properties.configuration.ingress.fqdn
+output apiIsInternal bool = vnetIntegrated
 output apiId string = api.id
 output workerId string = worker.id
 output managedEnvironmentId string = managedEnvironment.id

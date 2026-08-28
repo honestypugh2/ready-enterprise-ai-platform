@@ -27,3 +27,9 @@ param entraAudience = ''
 // Real writes to real systems of record. The approval chain is what makes this
 // safe, not the flag.
 param connectorDryRun = false
+
+// Not a choice in prod: public access is disabled on every resource, so
+// without private endpoints the deployment succeeds and produces resources
+// nothing can reach. main.bicep derives this rather than trusting the value.
+param deployPrivateNetworking = true
+param vnetAddressPrefix = '10.44.0.0/16'

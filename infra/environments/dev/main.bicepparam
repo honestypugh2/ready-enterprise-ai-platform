@@ -19,3 +19,7 @@ param deployMachineLearning = true
 // Writes stay simulated in dev. Turning this off is a decision with a name
 // attached, recorded in the deployment that made it.
 param connectorDryRun = true
+
+// Public endpoints in dev. Set true to rehearse the private posture before
+// prod, at the cost of needing a jump host to reach anything.
+param deployPrivateNetworking = false

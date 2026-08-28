@@ -44,6 +44,12 @@ param deployApiGateway bool = false
 @description('Deploy the Azure ML workspace for the specialized detector.')
 param deployMachineLearning bool = true
 
+@description('Deploy the VNet and private endpoints. Always on in prod, where public access is disabled; opt in for dev or test to rehearse the private posture.')
+param deployPrivateNetworking bool = false
+
+@description('Address space for the platform VNet. Must not overlap anything it will be peered with.')
+param vnetAddressPrefix string = '10.42.0.0/16'
+
 @description('Entra OpenID configuration URL for gateway token validation.')
 param entraOpenIdConfig string = ''
 
@@ -54,6 +60,11 @@ param entraAudience string = ''
 param connectorDryRun bool = true
 
 var namePrefix = '${workloadName}-${environment}'
+
+// Derived, not asked for. Prod disables public access on every resource, so
+// private networking there is not a choice — without it the deployment succeeds
+// and produces resources nothing can reach.
+var privateNetworking = environment == 'prod' || deployPrivateNetworking
 
 var resourceTags tags = {
   workload: workloadName
@@ -77,6 +88,18 @@ module monitor 'modules/monitor.bicep' = {
     namePrefix: namePrefix
     environment: environment
     resourceTags: resourceTags
+  }
+}
+
+module network 'modules/network.bicep' = if (privateNetworking) {
+  scope: rg
+  params: {
+    location: location
+    namePrefix: namePrefix
+    environment: environment
+    resourceTags: resourceTags
+    workspaceId: monitor.outputs.result.workspaceId
+    vnetAddressPrefix: vnetAddressPrefix
   }
 }
 
@@ -172,6 +195,7 @@ module apim 'modules/apim.bicep' = if (deployApiGateway) {
     publisherName: publisherName
     entraOpenIdConfig: entraOpenIdConfig
     entraAudience: entraAudience
+    apimSubnetId: privateNetworking ? network!.outputs.apimSubnetId : ''
   }
 }
 
@@ -190,6 +214,24 @@ module rbac 'modules/rbac.bicep' = {
   }
 }
 
+module privateEndpoints 'modules/privateendpoints.bicep' = if (privateNetworking) {
+  scope: rg
+  params: {
+    location: location
+    namePrefix: namePrefix
+    resourceTags: resourceTags
+    subnetId: network!.outputs.privateEndpointSubnetId
+    dnsZoneIds: network!.outputs.dnsZoneIds
+    storageId: storage.outputs.storageId
+    keyVaultId: keyvault.outputs.vaultId
+    searchId: search.outputs.searchId
+    foundryId: foundry.outputs.foundryId
+    serviceBusId: servicebus.outputs.namespaceId
+    amlId: deployMachineLearning ? aml!.outputs.amlId : ''
+    containerRegistryId: deployMachineLearning ? aml!.outputs.containerRegistryId : ''
+  }
+}
+
 output resourceGroupName string = rg.name
 output apiIdentityClientId string = identity.outputs.result.apiClientId
 output workerIdentityClientId string = identity.outputs.result.workerClientId
@@ -200,6 +242,7 @@ output storageBlobEndpoint string = storage.outputs.blobEndpoint
 output appInsightsConnectionString string = monitor.outputs.result.appInsightsConnectionString
 output gatewayUrl string = deployApiGateway ? apim!.outputs.gatewayUrl : ''
 output amlWorkspaceName string = deployMachineLearning ? aml!.outputs.amlName : ''
+output vnetId string = privateNetworking ? network!.outputs.vnetId : ''
 
 @description('Container Apps are deployed by the pipeline after the image exists. Values here are the inputs that deployment needs.')
 output containerAppInputs object = {
@@ -210,4 +253,5 @@ output containerAppInputs object = {
   connectorDryRun: connectorDryRun
   smallModelDeployment: foundry.outputs.smallModelDeployment
   frontierModelDeployment: foundry.outputs.frontierModelDeployment
+  infrastructureSubnetId: privateNetworking ? network!.outputs.containerAppsSubnetId : ''
 }
