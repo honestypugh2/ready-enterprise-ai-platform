@@ -1,0 +1,14 @@
+// Writes that reached the connector without a bound approval.
+//
+// This should return zero rows, always. A non-empty result means the writer's
+// refusal chain failed, which is a Sev-0. The alert in modules/monitor.bicep
+// fires on the same condition.
+AppTraces
+| where Properties.step_name == "execute_write"
+| extend
+    ApprovalId       = tostring(Properties["approval_id"]),
+    ApprovalRequired = tostring(Properties["approval_required"]),
+    Target           = tostring(Properties["target_system"]),
+    CorrelationId    = tostring(Properties["correlation_id"])
+| where ApprovalRequired == "True" and (isempty(ApprovalId) or ApprovalId == "not-required")
+| project TimeGenerated, CorrelationId, Target, ApprovalId

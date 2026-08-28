@@ -1,0 +1,85 @@
+# Local stack: API, worker and demo UI.
+#
+# Runs entirely offline in local mock mode. There is no credential, no
+# connection string and no Azure dependency anywhere in this file, and the
+# environment below cannot be edited into reaching a cloud service — the
+# settings validator refuses a cloud provider while REAP_MODE=local_mock.
+#
+#   make up     start
+#   make down   stop and remove volumes
+
+name: ready-enterprise-ai-platform
+
+services:
+  api:
+    build:
+      context: .
+      target: runtime
+    image: reap-api:local
+    command:
+      ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      REAP_MODE: local_mock
+      REAP_ENVIRONMENT: local
+      REAP_CONNECTOR_DRY_RUN: "true"
+      REAP_OTEL_CONSOLE_EXPORTER: "false"
+      # Written state stays in the container. Nothing here should outlive it.
+      REAP_STATE_DIR: /tmp/reap-state
+    ports:
+      - "127.0.0.1:8000:8000"
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/livez', timeout=2).status == 200 else 1)",
+        ]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  worker:
+    build:
+      context: .
+      target: runtime
+    image: reap-api:local
+    command: ["python", "-m", "worker.main"]
+    environment:
+      REAP_MODE: local_mock
+      REAP_ENVIRONMENT: local
+      REAP_CONNECTOR_DRY_RUN: "true"
+      REAP_STATE_DIR: /tmp/reap-state
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    depends_on:
+      api:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./apps/web
+    image: reap-web:local
+    environment:
+      # The browser calls the API directly, so this is a build-time origin.
+      VITE_API_BASE_URL: http://127.0.0.1:8000
+    ports:
+      - "127.0.0.1:5173:5173"
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      api:
+        condition: service_healthy

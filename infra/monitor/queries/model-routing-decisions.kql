@@ -1,0 +1,19 @@
+// Which route answered, and what it displaced.
+//
+// The rejected candidates are the interesting half. A route that is never
+// excluded is a route nobody is choosing between.
+AppTraces
+| where Properties.step_name == "select_route"
+| extend
+    SelectedRoute = tostring(Properties["selected_route"]),
+    RouteKind     = tostring(Properties["selected_kind"]),
+    ReasonCodes   = tostring(Properties["reason_codes"]),
+    IsFallback    = tobool(Properties["is_fallback"])
+| summarize
+    selections = count(),
+    fallbacks  = countif(IsFallback)
+    by SelectedRoute, RouteKind, ReasonCodes, bin(TimeGenerated, 1h)
+// A rising fallback rate means the preferred route is unhealthy and nobody
+// has noticed, because the platform kept answering.
+| extend fallback_rate = round(todouble(fallbacks) / selections, 3)
+| order by TimeGenerated desc, selections desc

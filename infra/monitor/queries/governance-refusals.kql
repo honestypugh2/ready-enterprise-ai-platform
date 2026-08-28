@@ -1,0 +1,14 @@
+// Where the platform refused, and why.
+//
+// A governance layer that never refuses is not governing. This query is the
+// evidence that the controls are load-bearing rather than decorative, and the
+// distribution is what you review — not the total.
+AppTraces
+| where Properties.event in ("workflow_halted", "policy_denied", "rate_limited", "approval_rejected")
+| extend
+    Event         = tostring(Properties["event"]),
+    Plane         = tostring(Properties["plane"]),
+    ErrorType     = tostring(Properties["error_type"]),
+    CorrelationId = tostring(Properties["correlation_id"])
+| summarize refusals = count() by Event, Plane, ErrorType, bin(TimeGenerated, 1h)
+| order by TimeGenerated desc, refusals desc

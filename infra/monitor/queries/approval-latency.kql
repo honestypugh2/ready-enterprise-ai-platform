@@ -1,0 +1,23 @@
+// How long a human takes to decide.
+//
+// The metric that determines whether human-in-the-loop is viable for a
+// workload. If the p95 exceeds the business's tolerance, the answer is to
+// narrow what requires approval — not to remove the gate.
+let requested =
+    AppTraces
+    | where Properties.step_name == "request_approval"
+    | project CorrelationId = tostring(Properties["correlation_id"]), RequestedAt = TimeGenerated;
+let decided =
+    AppTraces
+    | where Properties.step_name == "revalidate_state"
+    | project CorrelationId = tostring(Properties["correlation_id"]), DecidedAt = TimeGenerated;
+requested
+| join kind=inner decided on CorrelationId
+| extend wait_minutes = datetime_diff('minute', DecidedAt, RequestedAt)
+| summarize
+    decisions = count(),
+    p50 = percentile(wait_minutes, 50),
+    p95 = percentile(wait_minutes, 95),
+    max_wait = max(wait_minutes)
+    by bin(RequestedAt, 1d)
+| order by RequestedAt desc

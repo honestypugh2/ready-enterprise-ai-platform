@@ -1,0 +1,116 @@
+<!--
+  AI Gateway policy for the Foundry backend.
+
+  The gateway is the single hop that sees both the caller identity and the
+  model's token usage, and the caller cannot tamper with what it emits.
+  App-side logging is best-effort and spoofable; gateway-side logging is
+  authoritative. That is why cost attribution, token limiting and content
+  safety live here rather than in the application.
+
+  Adapted from the per-user cost attribution pattern in
+  honestypugh2/wordpress-chatbot (MIT). See infra/apim/README.md.
+
+  Identity precedence: Entra `oid` (tamper-proof) > `x-user-id` (only when set
+  by a trusted server-side component) > subscription id (coarse fallback).
+-->
+<policies>
+  <inbound>
+    <base />
+
+    <!-- The backend is reached with the gateway's managed identity. No key
+         appears in this policy, in a named value, or in any request. -->
+    <authentication-managed-identity resource="https://cognitiveservices.azure.com"
+                                     output-token-variable-name="managed-id-access-token"
+                                     ignore-error="false" />
+    <set-header name="Authorization" exists-action="override">
+      <value>@("Bearer " + (string)context.Variables["managed-id-access-token"])</value>
+    </set-header>
+
+    <!-- Resolve the caller. An unauthenticated caller is attributed to
+         `anonymous` and rate-limited as one bucket, never given a free pass. -->
+    <choose>
+      <when condition="@(context.Request.Headers.ContainsKey("Authorization"))">
+        <validate-jwt header-name="Authorization"
+                      failed-validation-httpcode="401"
+                      failed-validation-error-message="Unauthorized"
+                      require-expiration-time="true"
+                      require-signed-tokens="true">
+          <openid-config url="{{entra-openid-config}}" />
+          <audiences>
+            <audience>{{entra-audience}}</audience>
+          </audiences>
+        </validate-jwt>
+        <set-variable name="userId"
+                      value="@(context.Request.Headers.GetValueOrDefault("Authorization","").Split(' ').Last().AsJwt()?.Claims.GetValueOrDefault("oid", "unknown"))" />
+      </when>
+      <when condition="@(context.Request.Headers.ContainsKey("x-user-id"))">
+        <!-- Safe only when a trusted server-side proxy sets this after
+             validating its own session. Never trust it from a browser. -->
+        <set-variable name="userId" value="@(context.Request.Headers.GetValueOrDefault("x-user-id",""))" />
+      </when>
+      <otherwise>
+        <set-variable name="userId" value="@(context.Subscription?.Id ?? "anonymous")" />
+      </otherwise>
+    </choose>
+
+    <set-variable name="workloadId" value="@(context.Request.Headers.GetValueOrDefault("x-workload-id","manufacturing-quality"))" />
+    <set-variable name="correlationId" value="@(context.Request.Headers.GetValueOrDefault("x-correlation-id", context.RequestId.ToString()))" />
+
+    <!-- A budget the application cannot raise for itself. The counter key is
+         the resolved identity, so one caller cannot consume another's quota. -->
+    <azure-openai-token-limit counter-key="@((string)context.Variables["userId"])"
+                              tokens-per-minute="{{tokens-per-minute-per-user}}"
+                              estimate-prompt-tokens="true"
+                              tokens-consumed-header-name="x-tokens-consumed"
+                              remaining-tokens-header-name="x-tokens-remaining" />
+
+    <!-- Emits to Application Insights with the dimensions cost attribution
+         needs. See infra/monitor/queries/cost-per-completed-task.kql. -->
+    <azure-openai-emit-token-metric namespace="genai">
+      <dimension name="UserId" value="@((string)context.Variables["userId"])" />
+      <dimension name="WorkloadId" value="@((string)context.Variables["workloadId"])" />
+      <dimension name="CorrelationId" value="@((string)context.Variables["correlationId"])" />
+      <dimension name="ModelDeployment" value="@(context.Request.MatchedParameters.GetValueOrDefault("deployment-id","unknown"))" />
+    </azure-openai-emit-token-metric>
+
+    <!-- Semantic caching is deliberately NOT enabled by default. A cache hit
+         on a governed explanation returns evidence that was retrieved for a
+         different transaction, under a different entitlement. Enable it only
+         for a route whose responses carry no entitlement-scoped content. -->
+  </inbound>
+
+  <backend>
+    <base />
+  </backend>
+
+  <outbound>
+    <base />
+    <!-- Echoed so a caller can reconcile its own cost record against the
+         gateway's, and so a mismatch is visible rather than assumed. -->
+    <set-header name="x-user-id" exists-action="override">
+      <value>@((string)context.Variables["userId"])</value>
+    </set-header>
+    <set-header name="x-correlation-id" exists-action="override">
+      <value>@((string)context.Variables["correlationId"])</value>
+    </set-header>
+    <!-- Upstream headers can name the deployment, region and rate limits.
+         None of that is the caller's business. -->
+    <set-header name="x-ms-region" exists-action="delete" />
+    <set-header name="apim-request-id" exists-action="delete" />
+  </outbound>
+
+  <on-error>
+    <base />
+    <set-header name="x-correlation-id" exists-action="override">
+      <value>@((string)context.Variables["correlationId"])</value>
+    </set-header>
+    <!-- An upstream error body can echo the prompt. Return a shape, not the
+         provider's text. -->
+    <set-body>@{
+      return new JObject(
+        new JProperty("error", "upstream_unavailable"),
+        new JProperty("correlation_id", (string)context.Variables["correlationId"])
+      ).ToString();
+    }</set-body>
+  </on-error>
+</policies>

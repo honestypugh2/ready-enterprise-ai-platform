@@ -1,0 +1,18 @@
+// Evidence that entitlement filtering is actually running.
+//
+// A trimmed count of zero across every caller usually means the filter is not
+// being applied, not that everyone is entitled to everything.
+AppTraces
+| where Properties.step_name == "retrieve_evidence"
+| extend
+    Retrieved = toint(Properties["retrieved"]),
+    Trimmed   = toint(Properties["trimmed"]),
+    Strategy  = tostring(Properties["strategy"])
+| summarize
+    queries        = count(),
+    total_returned = sum(Retrieved),
+    total_trimmed  = sum(Trimmed),
+    queries_with_trimming = countif(Trimmed > 0)
+    by Strategy, bin(TimeGenerated, 1d)
+| extend trimming_rate = round(todouble(queries_with_trimming) / queries, 3)
+| order by TimeGenerated desc
