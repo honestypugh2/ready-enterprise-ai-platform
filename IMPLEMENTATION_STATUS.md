@@ -214,11 +214,11 @@ no Service Bus message published, no App Insights trace exported.
 | Terraform parity | **Not implemented** |
 | `Dockerfile` | **Written, build unverified** — the image build fails on this machine because buildkit cannot reach PyPI (runtime containers resolve it fine). A local container-networking fault, not a template defect, but it means the image has never been built. |
 | `docker-compose.yml` | **Config-validated, never run** — depends on the image above. Read-only root filesystem, dropped capabilities, loopback-only ports. |
-| `.devcontainer/` | **Not implemented** |
+| `.devcontainer/` | **Complete, never opened** — Python 3.12, Node 24, Azure CLI, docker-in-docker |
 | `.github/workflows/` CI | **Complete** — `ci.yml` (lint, types, every suite, coverage, all seven demo scenarios, frontend, container build + liveness), `security.yml` (pip-audit, npm audit, bandit, secret scan over full history, CodeQL, SBOM, weekly schedule), `eval.yml` (release gate as its own status check), `infra.yml` (compile + what-if via workload identity federation). **Never executed on GitHub** — every command was run locally, the workflows themselves have not run. |
 | `.github/dependabot.yml` | **Complete** — uv, npm, actions and docker, grouped weekly |
 | `SECURITY.md`, `CONTRIBUTING.md` | **Complete** |
-| `azure.yaml` (azd) | **Not implemented** |
+| `azure.yaml` (azd) | **Complete, never run** — two-phase provision then deploy, with a `preprovision` hook that validates templates and warns on `CHANGE-ME` placeholders. `scripts/deploy.sh` remains the reviewed path because it previews by default and refuses prod from a workstation. |
 | `scripts/scan-secrets.sh` | **Complete** — runs in git mode, found one true positive on first execution |
 | `scripts/validate-bicep.sh` | **Complete and exercised** — validates 13 templates and 3 parameter files |
 | `scripts/deploy.sh` | **Complete, never exercised against Azure** — refuses to deploy `prod` from a workstation by design |
@@ -231,11 +231,26 @@ no Service Bus message published, no App Insights trace exported.
 |---|---|
 | `README.md` | **Complete** |
 | `IMPLEMENTATION_STATUS.md` | This file |
-| `docs/architecture/*` | **Planned** |
-| `docs/adr/*` | **Planned** — `pyproject.toml` already references ADR-0018 and `detector/mock.py` references a model card. **Both links are currently dangling.** |
-| `docs/security/threat-model.md` | **Planned** |
-| `docs/operations/*` | **Planned** |
-| `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` | **Not implemented** |
+| `AGENTS.md` | **Complete** — hard constraints for AI coding agents |
+| `docs/architecture/overview.md` | **Complete** — nine planes, trust boundaries, where each claim is enforced |
+| `docs/architecture/reuse-and-attribution.md` | **Complete** |
+| `docs/architecture/model-cards/mock-detector.md` | **Complete** — opens by stating it is not a model |
+| `docs/adr/` | **Complete** — 19 records, each with its cost and what would change it |
+| `docs/security/threat-model.md` | **Complete** — STRIDE + OWASP LLM Top 10, unmitigated risks named |
+| `docs/security/authorization-model.md` | **Complete** |
+| `docs/evaluations/framework.md` | **Complete** |
+| `docs/operations/execution-modes.md` | **Complete** |
+| `docs/operations/production-readiness.md` | **Complete** |
+| `docs/demo/runbook.md` | **Complete** — including the questions you will be asked |
+| `docs/presentation-mapping/README.md` | **Complete** — every message → component → test → demo step |
+| `docs/field-positioning/README.md` | **Complete** — including where this does *not* apply |
+| `SECURITY.md`, `CONTRIBUTING.md` | **Complete** |
+| `CODE_OF_CONDUCT.md` | **Not implemented** |
+| Disaster recovery guidance | **Not implemented** — no documented RPO or RTO, no tested restore |
+| Operations runbook / on-call | **Not implemented** |
+
+All 94 relative markdown links and every `docs/` reference made from source
+resolve, verified by script rather than by eye.
 
 ---
 

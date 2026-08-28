@@ -1,0 +1,87 @@
+# Azure Developer CLI definition.
+#
+# azd is offered as a convenience for a first environment, not as the deployment
+# path. `scripts/deploy.sh` remains the reviewed path: it previews by default,
+# prompts before applying, and refuses to deploy prod from a workstation.
+#
+# Two-phase on purpose. `azd provision` creates the infrastructure and the
+# managed identities; `azd deploy` builds and pushes the images. Running them
+# together means the registry role assignment may not have propagated when the
+# first pull happens, which fails with a misleading error.
+#
+#   azd auth login
+#   azd env new reap-dev
+#   azd env set AZURE_LOCATION eastus2
+#   azd provision --preview        # required safety gate: read this first
+#   azd provision
+#   azd deploy
+
+name: ready-enterprise-ai-platform
+metadata:
+  template: ready-enterprise-ai-platform@0.1.0
+
+infra:
+  provider: bicep
+  path: infra
+  module: main
+
+# Subscription-scoped, because the resource group is part of what is deployed
+# and carries the tags that drive cost attribution and residency reporting.
+services:
+  api:
+    project: .
+    language: py
+    host: containerapp
+    docker:
+      path: ./Dockerfile
+      context: .
+
+  worker:
+    project: .
+    language: py
+    host: containerapp
+    docker:
+      path: ./Dockerfile
+      context: .
+
+  web:
+    project: ./apps/web
+    language: ts
+    host: staticwebapp
+    dist: dist
+
+hooks:
+  preprovision:
+    shell: sh
+    continueOnError: false
+    run: |
+      echo "Validating templates before provisioning."
+      ./scripts/validate-bicep.sh
+      if grep -rq "CHANGE-ME" infra/environments/ 2>/dev/null; then
+        echo ""
+        echo "WARNING: infra/environments/ still contains CHANGE-ME placeholders."
+        echo "owner, costCenter and publisher must name a real team before a real deployment."
+      fi
+
+  postprovision:
+    shell: sh
+    continueOnError: true
+    run: |
+      echo ""
+      echo "Provisioned. Before deploying services:"
+      echo "  1. Verify the managed identity holds AcrPull on the registry."
+      echo "  2. Confirm dry run is set as you intend — connectorDryRun is true by default."
+      echo "  3. Nothing writes to a system of record until an approval is recorded."
+
+  postdeploy:
+    shell: sh
+    continueOnError: true
+    run: |
+      echo ""
+      echo "Deployed. This is azure_dev or production mode, so the adapters are"
+      echo "now executing against real services for the first time. Everything"
+      echo "marked 'Adapter only' in IMPLEMENTATION_STATUS.md is unproven until"
+      echo "it has actually run here."
+      echo ""
+      echo "Re-baseline every evaluation threshold: the current scores were"
+      echo "measured against a mock reasoner and a lexical retriever."
