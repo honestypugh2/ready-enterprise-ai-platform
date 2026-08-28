@@ -1,0 +1,129 @@
+# Security checks.
+#
+# Split from ci.yml because these run on a schedule as well as on a change: a
+# dependency that was clean on Monday is not necessarily clean on Friday, and
+# nobody re-runs CI on an untouched branch.
+
+name: security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # A vulnerability disclosed after the last commit is still a vulnerability.
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dependencies:
+    name: dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - run: uv sync --frozen --extra dev
+
+      - name: Python dependencies
+        # --strict fails on an advisory with no fix available too. A known
+        # vulnerability with no patch is still a decision someone must take.
+        run: uv run pip-audit --skip-editable --strict
+
+      - name: Frontend dependencies
+        working-directory: apps/web
+        run: |
+          npm ci --no-audit --no-fund
+          npm audit --audit-level=moderate
+
+  static-analysis:
+    name: static analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - run: uv sync --frozen --extra dev
+
+      - name: Bandit
+        run: uv run bandit -q -c pyproject.toml -r packages apps
+
+      - name: Ruff security rules
+        # The `S` ruleset is already in `make lint`; running it explicitly here
+        # means a security finding is reported as a security failure.
+        run: uv run ruff check --select S packages apps
+
+  secrets:
+    name: secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # Full history: a secret removed in the tip commit is still a secret
+          # that was published.
+          fetch-depth: 0
+
+      - name: Repository secret scan
+        run: ./scripts/scan-secrets.sh
+
+  codeql:
+    name: codeql
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [python, javascript-typescript, actions]
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: github/codeql-action/init@v4
+        with:
+          language: ${{ matrix.language }}
+          queries: security-extended
+
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:${{ matrix.language }}
+
+  sbom:
+    name: sbom
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event_name != 'pull_request'
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - run: uv sync --frozen --extra dev
+
+      - name: Generate CycloneDX SBOM
+        run: uv run --with cyclonedx-bom cyclonedx-py environment .venv -o sbom.json
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: sbom
+          path: sbom.json
+          retention-days: 90

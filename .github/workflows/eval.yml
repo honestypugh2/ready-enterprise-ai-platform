@@ -1,0 +1,94 @@
+# The evaluation release gate.
+#
+# Separate from ci.yml so the result is a distinct status check. "Tests pass"
+# and "the model behaves acceptably" are different claims, and collapsing them
+# into one green tick hides which of the two failed.
+#
+# The gate exits non-zero when a blocking grader falls below its threshold, so
+# a regression in governance behaviour blocks the merge rather than being
+# discovered in a demo.
+
+name: evaluation-gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    paths:
+      - "packages/**"
+      - "apps/**"
+      - "data/evaluations/**"
+      - "data/knowledge/**"
+      - "data/fixtures/**"
+      - "pyproject.toml"
+      - "uv.lock"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  REAP_MODE: local_mock
+
+jobs:
+  gate:
+    name: release gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - run: uv sync --frozen --extra dev
+
+      - name: Run the evaluation gate
+        id: gate
+        run: |
+          mkdir -p reports
+          uv run reap eval --report reports/evaluation-report.json | tee reports/gate.txt
+
+      - name: READY AI scorecard
+        # The reference implementation fails its own gate. That is the honest
+        # result and it is recorded rather than hidden, so `continue-on-error`
+        # is deliberate here and nowhere else in this file.
+        continue-on-error: true
+        run: uv run reap ready | tee reports/readyai.txt
+
+      - name: Publish the result
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: evaluation-report
+          path: reports/
+          retention-days: 30
+
+      - name: Comment the gate result on the pull request
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.existsSync('reports/gate.txt')
+              ? fs.readFileSync('reports/gate.txt', 'utf8')
+              : 'The evaluation gate produced no output.';
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: [
+                '### Evaluation release gate',
+                '',
+                'Scores are measured against the deterministic mock reasoner and the',
+                'local lexical retriever. They describe the harness, not a model.',
+                '',
+                '```',
+                body.trim(),
+                '```',
+              ].join('\n'),
+            });

@@ -1,0 +1,177 @@
+# Continuous integration.
+#
+# This workflow is what turns `make check` from a command someone remembers to
+# run into a condition a change has to satisfy. Until it existed, the release
+# gate passed because a person chose to run it.
+#
+# Every job here runs offline in local mock mode. No Azure subscription, no
+# credential, no network dependency beyond the package registries — so a fork
+# gets the same result as the trunk.
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# A superseded run is wasted spend and a confusing status check.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # The suite is deterministic by design. Anything that reaches for a cloud
+  # dependency should fail here rather than silently skip.
+  REAP_MODE: local_mock
+  UV_FROZEN: "1"
+
+jobs:
+  python:
+    name: python (lint, types, tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Install dependencies
+        # --frozen so a lockfile that drifts from pyproject.toml fails the
+        # build instead of being silently re-resolved.
+        run: uv sync --frozen --extra dev
+
+      - name: Format and lint
+        run: |
+          uv run ruff format --check packages apps tests scripts
+          uv run ruff check packages apps tests scripts
+
+      - name: Type check
+        run: uv run mypy packages apps
+
+      - name: Unit, contract, security and resilience suites
+        run: uv run pytest tests --ignore=tests/integration -o addopts='' -q
+
+      - name: Integration suite (offline)
+        run: uv run pytest tests/integration -o addopts='' -q
+
+      - name: Coverage
+        run: |
+          uv run pytest tests --ignore=tests/integration \
+            --cov=packages --cov=apps --cov-report=xml --cov-report=term -o addopts=''
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v6
+        with:
+          name: coverage-xml
+          path: coverage.xml
+          retention-days: 7
+
+  demo:
+    name: demo scenarios
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - run: uv sync --frozen --extra dev
+
+      - name: Every scenario completes and its audit chain verifies
+        # The demo is a deliverable. A scenario that breaks two days before a
+        # session is worse than a failing test.
+        run: |
+          set -euo pipefail
+          for scenario in clean-unit cosmetic low-confidence major-defect \
+                          repeat-major critical-defect restricted-classification; do
+            echo "::group::$scenario"
+            uv run reap demo run --scenario "$scenario" | tee "/tmp/$scenario.txt"
+            grep -q "chain verifies" "/tmp/$scenario.txt" \
+              || { echo "::error::$scenario did not verify its audit chain"; exit 1; }
+            echo "::endgroup::"
+          done
+
+      - name: Platform doctor
+        run: uv run reap doctor
+
+  frontend:
+    name: frontend (lint, types, tests, build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: apps/web/.nvmrc
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test
+      - run: npm run build
+
+  container:
+    name: container image builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build the API/worker image
+        # Not pushed. This job exists because the image has never been built
+        # on a developer machine that could reach PyPI from buildkit.
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: reap-api:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: The image starts and answers its own liveness probe
+        run: |
+          set -euo pipefail
+          docker run -d --name reap-ci -p 8000:8000 -e REAP_MODE=local_mock reap-api:ci
+          for _ in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/livez >/dev/null 2>&1; then
+              echo "api is live"
+              curl -fsS http://127.0.0.1:8000/healthz
+              docker rm -f reap-ci
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::the image did not become live within 60s"
+          docker logs reap-ci
+          docker rm -f reap-ci
+          exit 1
+
+  compose:
+    name: compose config
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - run: docker compose config --quiet

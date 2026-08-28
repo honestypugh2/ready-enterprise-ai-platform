@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/honestypugh2/ready-enterprise-ai-platform/security/advisories/new
+    about: Report privately. Do not open a public issue.

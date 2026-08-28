@@ -1,0 +1,46 @@
+name: Bug report
+description: Something behaves differently from what the repository claims
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing: this repository runs offline in local mock mode by
+        default. `make install && make check` should pass on a clean clone with
+        no Azure subscription. If it does not, that is the bug.
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What the repository claims
+      description: Quote the README, a docstring or IMPLEMENTATION_STATUS.md.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: What actually happened
+      description: Include the command and its full output.
+      render: shell
+    validations:
+      required: true
+
+  - type: input
+    id: mode
+    attributes:
+      label: Execution mode
+      placeholder: local_mock
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: |
+        OS:
+        Python (uv run python -V):
+        uv --version:
+    validations:
+      required: true

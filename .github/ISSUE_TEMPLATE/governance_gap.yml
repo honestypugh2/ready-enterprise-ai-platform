@@ -1,0 +1,45 @@
+name: Governance gap
+description: A control can be bypassed, or a claim is not actually enforced
+labels: [governance, security]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this when a control the architecture depends on does not hold —
+        a write without an approval, evidence returned past an entitlement, a
+        policy rule that never fires, a redaction that can be bypassed.
+
+        For an exploitable vulnerability, use private security reporting
+        instead. See SECURITY.md.
+
+  - type: dropdown
+    id: control
+    attributes:
+      label: Which control
+      options:
+        - Policy engine (deterministic disposition)
+        - Approvals (separation of duties, dual control, expiry)
+        - Scoped writer (the six refusals)
+        - Audit chain (hash chain, sealing)
+        - Retrieval entitlements
+        - Telemetry redaction
+        - Plane boundary / import graph
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: bypass
+    attributes:
+      label: How the control is bypassed
+      description: Ideally a failing test.
+      render: python
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: What this would mean in production
+    validations:
+      required: true

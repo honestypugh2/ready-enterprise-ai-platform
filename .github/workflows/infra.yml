@@ -1,0 +1,104 @@
+# Infrastructure validation and preview.
+#
+# Two properties this workflow exists to guarantee:
+#
+#   * Every Bicep change compiles before it is merged.
+#   * A change to infrastructure is previewed against a real subscription and
+#     the preview is posted on the pull request, because a deployment nobody
+#     can preview is a deployment nobody can approve.
+#
+# Authentication is workload identity federation. There is no secret in this
+# repository and no service principal password in any GitHub secret — only the
+# client, tenant and subscription ids, none of which are credentials.
+
+name: infra
+
+on:
+  push:
+    branches: [main]
+    paths: ["infra/**", "scripts/*.sh", ".github/workflows/infra.yml"]
+  pull_request:
+    branches: [main]
+    paths: ["infra/**", "scripts/*.sh", ".github/workflows/infra.yml"]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to preview
+        type: choice
+        options: [dev, test]
+        default: dev
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: compile and lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Bicep
+        run: az bicep install
+
+      - name: Compile every template and parameter file
+        run: ./scripts/validate-bicep.sh
+
+      - name: Parameter files carry no placeholder into a deployment
+        # CHANGE-ME is the right default for a public reference repo and the
+        # wrong thing to deploy. This catches the copy-paste before Azure does.
+        run: |
+          if grep -rn "CHANGE-ME" infra/environments/ >/dev/null 2>&1; then
+            echo "::warning::parameter files still contain CHANGE-ME placeholders; \
+                  they must be replaced before any real deployment"
+          fi
+
+  preview:
+    name: what-if preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: validate
+    # Only when the repository has been wired to a subscription. A fork without
+    # federation gets a clean skip rather than a confusing auth failure.
+    if: vars.AZURE_CLIENT_ID != ''
+    environment: ${{ inputs.environment || 'dev' }}
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Sign in with workload identity federation
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Preview changes
+        id: whatif
+        env:
+          AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+        run: |
+          set -euo pipefail
+          ./scripts/deploy.sh --what-if --env "${{ inputs.environment || 'dev' }}" \
+            | tee /tmp/whatif.txt
+
+      - name: Post the preview on the pull request
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require('fs');
+            const preview = fs.readFileSync('/tmp/whatif.txt', 'utf8');
+            const truncated = preview.length > 60000
+              ? preview.slice(0, 60000) + '\n… truncated; see the job log'
+              : preview;
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: ['### Infrastructure preview', '', '```', truncated, '```'].join('\n'),
+            });
