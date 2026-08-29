@@ -290,6 +290,7 @@ resolve, verified by script rather than by eye.
 | `docs/security/authorization-model.md` | Implemented |
 | `docs/evaluations/framework.md` | Implemented |
 | `docs/operations/execution-modes.md` | Implemented |
+| `docs/operations/preview-register.md` | Implemented — every preview API version, pinned constraint and non-version prerequisite in one place |
 | `docs/operations/production-readiness.md` | Implemented |
 | `docs/demo/runbook.md` | Implemented — including the questions you will be asked |
 | `docs/presentation-mapping/README.md` | Implemented — message → component → test → demo step |

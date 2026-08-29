@@ -105,6 +105,11 @@ pretending the platform is running.
 
 ## Preview features and prerequisites
 
+The full register — including Python constraints, optional extras and the
+non-version prerequisites — is
+[docs/operations/preview-register.md](../docs/operations/preview-register.md).
+The items below are the ones that will stop an infrastructure deployment.
+
 | Item | Status |
 |---|---|
 | `Microsoft.CognitiveServices/accounts/projects` | GA surface, evolving. Verify against your subscription's available API versions before deploying. |

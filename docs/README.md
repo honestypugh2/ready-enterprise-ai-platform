@@ -35,6 +35,7 @@ Organised by what you are trying to do.
 |---|---|
 | [evaluations/framework.md](evaluations/framework.md) | Datasets, graders, thresholds, release gates |
 | [operations/execution-modes.md](operations/execution-modes.md) | local_mock, azure_dev, production |
+| [operations/preview-register.md](operations/preview-register.md) | Every preview, prerelease and pinned dependency, in one place |
 | [operations/production-readiness.md](operations/production-readiness.md) | READY AI, rollout stages, operational gaps |
 | [../infra/README.md](../infra/README.md) | Bicep layout, decisions, preview prerequisites |
 
