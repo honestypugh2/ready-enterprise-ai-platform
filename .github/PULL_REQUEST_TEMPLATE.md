@@ -15,7 +15,8 @@ make check
 - [ ] `make check` passes (lint, strict types, unit + contract + security suites)
 - [ ] `make eval` passes, or a threshold change is justified below
 - [ ] Any new claim in the README or docs is enforced by a test, not just written
-- [ ] `IMPLEMENTATION_STATUS.md` updated if this changes what is real vs mocked
+- [ ] `IMPLEMENTATION_STATUS.md` updated if this changes what exists or what has been proven
+- [ ] Nothing newly marked ⬤ Proven unless it was run against the real dependency
 - [ ] No fabricated benchmark, price, accuracy figure or customer outcome
 - [ ] `make secrets` passes; any new allowlist entry has a stated reason
 

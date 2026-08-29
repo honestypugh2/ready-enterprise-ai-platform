@@ -121,7 +121,9 @@ Azure mode is opt-in per plane, so you can connect retrieval to Azure AI Search 
 
 ## What is real, what is mocked
 
-Honesty about status is a feature of this repository, not a caveat buried at the bottom. **[`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md)** records, for every capability: complete / partial / mocked / planned / preview-dependent / not implemented, plus the validation actually performed and the production implication of the gap.
+Honesty about status is a feature of this repository, not a caveat buried at the bottom. **[`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md)** records every capability on two axes: **what exists** (Implemented / Partial / Mocked / Adapter only / Absent) and **what has actually been proven** (⬤ Proven / ◑ Tested / ◔ Checked / ○ Written), plus the remaining gap and what it would mean in production.
+
+The two are separated because one column was hiding the difference between a plane covered by ninety-odd tests and a Bicep template that had only ever been parsed. **The ⬤ Proven column is currently empty** — nothing here has been executed against a live Azure dependency.
 
 Three statements that apply everywhere:
 

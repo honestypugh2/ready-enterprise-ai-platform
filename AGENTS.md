@@ -55,9 +55,13 @@ These are not preferences. Violating one makes the repository dishonest.
 5. **Local mock mode stays the enforced default.** The settings validator must
    keep refusing a cloud provider and `dry_run=false` in local mode.
 6. **Do not reference `foundry-copilot-search-validate`.**
-7. **Update `IMPLEMENTATION_STATUS.md`** whenever a capability moves between
-   Complete, Partial, Mocked, Adapter only and Planned. A status document that
-   drifts is worse than none, because people trust it.
+7. **Update `IMPLEMENTATION_STATUS.md`** whenever a capability changes on either
+   axis — what exists (Implemented / Partial / Mocked / Adapter only / Absent)
+   or what has been proven (⬤ Proven / ◑ Tested / ◔ Checked / ○ Written).
+   **Only claim ⬤ Proven for something you ran against the real dependency and
+   observed.** A passing test is ◑ Tested. A template that compiles is ◔
+   Checked. A status document that drifts is worse than none, because people
+   trust it.
 
 ## Architecture rules
 

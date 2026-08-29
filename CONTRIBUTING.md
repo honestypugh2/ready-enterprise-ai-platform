@@ -32,8 +32,17 @@ make infra-lint       # if you touched infra/
 ```
 
 Update [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) if your change moves
-something between Complete, Partial, Mocked, Adapter only and Planned. A status
-document that drifts is worse than none, because people trust it.
+a capability on either axis — what exists (Implemented / Partial / Mocked /
+Adapter only / Absent) or what has been proven (⬤ Proven / ◑ Tested / ◔ Checked
+/ ○ Written).
+
+The two are separated because one column was hiding the difference between a
+plane covered by ninety-odd tests and a Bicep template that had only ever been
+parsed. **Only claim ⬤ Proven for something you ran against the real dependency
+and observed the result of.** A passing test against a mock is ◑ Tested, and
+that is a claim about the governance path, not about the mocked component.
+
+A status document that drifts is worse than none, because people trust it.
 
 ## Honesty constraints
 
