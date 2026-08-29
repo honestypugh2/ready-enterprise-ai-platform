@@ -129,6 +129,17 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self._limit = requests_per_minute
         self._windows: dict[str, tuple[int, int]] = defaultdict(lambda: (0, 0))
 
+    def _evict_stale(self, window: int) -> None:
+        """Drop windows that have rolled over.
+
+        Without this the map grows one entry per distinct client address and
+        never shrinks, which is a slow memory leak in the request path and an
+        easy one to trigger deliberately.
+        """
+        stale = [client for client, (seen, _) in self._windows.items() if seen != window]
+        for client in stale:
+            del self._windows[client]
+
     async def dispatch(
         self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
@@ -140,6 +151,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         current_window, count = self._windows[client]
 
         if current_window != window:
+            self._evict_stale(window)
             self._windows[client] = (window, 1)
         elif count >= self._limit:
             logger.warning("rate_limited", extra={"client": client, "limit": self._limit})

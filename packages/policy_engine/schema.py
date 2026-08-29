@@ -34,6 +34,9 @@ class RuleCondition(PolicyModel):
     label_in: tuple[str, ...] | None = None
     confidence_at_or_above_threshold: bool | None = None
     confidence_at_least: float | None = Field(default=None, ge=0.0, le=1.0)
+    # The model's own threshold is the model's opinion of when to trust itself.
+    # This tests the policy's independent floor, which the model cannot lower.
+    confidence_below_policy_floor: bool | None = None
     kill_switch_engaged: bool | None = None
     batch_defect_count_at_least: int | None = Field(default=None, ge=0)
     safety_relevant: bool | None = None

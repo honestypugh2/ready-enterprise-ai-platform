@@ -17,6 +17,7 @@ PY := $(UV) run
 API_HOST ?= 127.0.0.1
 API_PORT ?= 8000
 WEB_DIR := apps/web
+DECK_DIR := presentation
 SCENARIO ?= major-defect
 REPORT ?= reports/evaluation-report.json
 
@@ -130,6 +131,14 @@ web: ## Start the demo UI on http://localhost:5173
 .PHONY: web-build
 web-build: ## Type-check, lint, test and build the frontend
 	cd $(WEB_DIR) && npm install && npm run lint && npm run typecheck && npm run test && npm run build
+
+.PHONY: deck
+deck: ## Present the session deck on http://localhost:5180 (press S for speaker notes)
+	cd $(DECK_DIR) && npm install && npm run dev
+
+.PHONY: deck-build
+deck-build: ## Build the deck to presentation/dist, presentable from disk with no server
+	cd $(DECK_DIR) && npm install && npm run build
 
 .PHONY: up
 up: ## Start API + worker + web with docker compose

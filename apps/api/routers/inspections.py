@@ -8,6 +8,8 @@ boundary an approval exists to create.
 
 from __future__ import annotations
 
+from collections import OrderedDict
+
 from fastapi import APIRouter, HTTPException, status
 
 from api.dependencies import AssemblyDep, CorrelationDep, IdentityDep, SettingsDep
@@ -21,7 +23,28 @@ router = APIRouter(prefix="/v1/inspections", tags=["inspection"])
 
 # Outcomes are kept per replica so the approval flow can resume. A production
 # deployment replaces this with the evidence store; see IMPLEMENTATION_STATUS.md.
-_OUTCOMES: dict[str, object] = {}
+#
+# Bounded, because an unbounded cache in a request path is a memory leak that
+# presents as a replica dying under sustained traffic. Eviction loses a pending
+# approval, which is the same failure a restart already causes — the durable
+# store is the real fix.
+_MAX_RETAINED_OUTCOMES = 1_000
+_OUTCOMES: OrderedDict[str, object] = OrderedDict()
+
+
+def remember(correlation_id: str, outcome: object) -> None:
+    """Store a transaction so a later approval decision can resume it."""
+    _OUTCOMES[correlation_id] = outcome
+    _OUTCOMES.move_to_end(correlation_id)
+    while len(_OUTCOMES) > _MAX_RETAINED_OUTCOMES:
+        _OUTCOMES.popitem(last=False)
+
+
+def recall(correlation_id: str) -> object | None:
+    outcome = _OUTCOMES.get(correlation_id)
+    if outcome is not None:
+        _OUTCOMES.move_to_end(correlation_id)
+    return outcome
 
 
 @router.post(
@@ -54,7 +77,7 @@ async def create_inspection(
         ),
         batch_defect_count=payload.batch_defect_count,
     )
-    _OUTCOMES[outcome.correlation_id] = outcome
+    remember(outcome.correlation_id, outcome)
     return inspection_response(outcome, mode=settings.mode.value)
 
 
@@ -84,7 +107,7 @@ async def run_scenario(
         ),
         batch_defect_count=scenario.batch_defect_count,
     )
-    _OUTCOMES[outcome.correlation_id] = outcome
+    remember(outcome.correlation_id, outcome)
     return inspection_response(outcome, mode=settings.mode.value)
 
 
@@ -94,16 +117,7 @@ async def run_scenario(
     summary="Retrieve a transaction by correlation id",
 )
 async def get_inspection(correlation_id: str, settings: SettingsDep) -> InspectionResponse:
-    outcome = _OUTCOMES.get(correlation_id)
+    outcome = recall(correlation_id)
     if outcome is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="unknown correlation id")
     return inspection_response(outcome, mode=settings.mode.value)  # type: ignore[arg-type]
-
-
-def remember(correlation_id: str, outcome: object) -> None:
-    """Used by the approvals router to store the completed outcome."""
-    _OUTCOMES[correlation_id] = outcome
-
-
-def recall(correlation_id: str) -> object | None:
-    return _OUTCOMES.get(correlation_id)

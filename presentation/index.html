@@ -1,0 +1,1070 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Beyond the Agent — Enterprise AI Architecture and Production Readiness</title>
+</head>
+
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+            <!-- ================================================================
+             01 · TITLE                                                0:00 – 0:30
+             ================================================================ -->
+            <section data-background-color="#05070e">
+                <div class="stack">
+                    <div class="title-rule"></div>
+                    <p class="eyebrow">Enterprise AI architecture · 25 minutes</p>
+                    <h1>Beyond<br />the Agent</h1>
+                    <p class="title-lede">
+                        The model creates capability.<br />
+                        The platform creates <em style="color: var(--accent); font-style: normal">accountability</em>.
+                    </p>
+                    <p class="title-meta">
+                        <b>Brittany Pugh</b> · Sr Solution Engineer · Microsoft<br />
+                        For enterprise, AI and security architects
+                    </p>
+                </div>
+                <aside class="notes">
+                    0:00–0:30 · Say the subtitle, then move. Do not read the title.
+                    "I'm going to make one argument today and then spend twenty minutes
+                    trying to prove it with something running on this laptop."
+                </aside>
+            </section>
+
+            <!-- ================================================================
+             02 · COLD OPEN — demo cue                                 0:30 – 3:00
+             ================================================================ -->
+            <section data-background-color="#05070e">
+                <div class="stack">
+                    <p class="eyebrow">Live · 1 of 5</p>
+                    <h2 class="statement">
+                        Before I explain anything,<br />watch it <em>refuse</em>.
+                    </h2>
+                    <p class="cmd">reap demo run --scenario critical-defect</p>
+                </div>
+                <div class="foot">
+                    <span class="cue">Terminal · offline · no Azure, no credential, no network</span>
+                    <span>0:30</span>
+                </div>
+                <aside class="notes">
+                    0:30–3:00 · SWITCH TO TERMINAL. Run it live.
+
+                    Narrate three beats only:
+                    1. The detector fires in ~9ms and decides nothing.
+                    2. Policy returns stop_line with a rule id, a version and a file hash.
+                    3. The write is held: dual control, two distinct principals.
+
+                    Land on: "That refusal is the product. Everything I say for the next
+                    twenty minutes is about what it takes to earn a refusal you can defend."
+
+                    FALLBACK if the terminal misbehaves: press RIGHT — the next slide is
+                    the captured run. Narrate that instead. Never debug on stage.
+                </aside>
+            </section>
+
+            <!-- ================================================================
+             03 · COLD OPEN payoff — captured artifact
+             ================================================================ -->
+            <section data-background-color="#05070e">
+                <div class="stack">
+                    <p class="eyebrow">Captured from this repository · local mock mode</p>
+                    <div class="term">
+                        <div class="bar">
+                            <i></i><i></i><i></i>
+                            <span class="path">reap demo run --scenario critical-defect</span>
+                        </div>
+                        <pre class="sm">
+<span class="d">6-7  Validate  ·  deterministic policy</span>
+  allowed                    <span class="b">True</span>
+  severity                   <span class="b">critical</span>
+  disposition                <span class="c">stop_line</span>
+  matched rules              <span class="b">R030-structural-crack</span>, G001-no-write-without-approval
+  policy version             <span class="b">2.5.0</span> · <span class="u">sha256:e248eed66e0…</span>
+  approval required          <span class="c">True (plant_manager) · dual control</span>
+
+<span class="d">9-10  Act  ·  sole scoped writer</span>
+  status                     <span class="c">dry_run</span>
+  attempts                   <span class="b">0</span>
+  <span class="d">One service holds the write path. It refused six ways before acting.</span>
+</pre>
+                    </div>
+                    <p class="label-note">
+                        Real output, captured 2026-08-28 in <code>local_mock</code> mode. Every
+                        plane is mocked; the governance around them is not. Nothing in this
+                        repository has been deployed to Azure and no accuracy, latency or cost
+                        claim is made anywhere in it.
+                    </p>
+                </div>
+                <aside class="notes">
+                    Use this only if the live run fails, or flash it for two seconds as the
+                    receipt of what they just watched. Say the honesty line out loud —
+                    it buys you credibility for the rest of the deck.
+                </aside>
+            </section>
+
+            <!-- ================================================================
+             04 · THE CLAIM — two myths                                3:00 – 4:30
+             ================================================================ -->
+            <section data-background-color="#05070e">
+                <div class="stack">
+                    <p class="eyebrow">Two myths decide most enterprise AI programs</p>
+                    <h2 class="statement wide">An agent is a <em>runtime</em>.</h2>
+                    <p class="detail" style="margin-bottom: 30px">
+                        A model, instructions, memory, tools and a control loop.
+                        That is the experience layer. It does not decide:
+                    </p>
+                    <ol class="asks">
+                        <li class="fragment fade-in-then-semi-out">which data is authoritative</li>
+                        <li class="fragment fade-in-then-semi-out">what this user may retrieve</li>
+                        <li class="fragment fade-in-then-semi-out">what may be written to a system of record</li>
+                        <li class="fragment">what evidence permits a release</li>
+                    </ol>
+                    <p class="detail fragment" style="margin-top: 32px">
+                        The second myth is that the <strong>frontier model</strong> is the
+                        architecture. Both name real capability. Neither names a production
+                        system, because <strong>capability is not the constraint —
+                            accountability is</strong>.
+                    </p>
+                </div>
+                <div class="foot">
+                    <span class="cue">The model creates capability. The platform creates accountability.</span>
+                    <span>3:00</span>
+                </div>
+                <aside class="notes">
+                    3:00–4:30 · Four fragments, one sentence each. Do not elaborate.
+                    Then the second myth in one breath — name what each myth gets right
+                    before taking it apart, because the room contains people who shipped
+                    both. Land the anchor line for the first time and pause before advancing.
+                    It returns three more times: after the hybrid flow, after the demo, and in the close.
+                </aside>
+            </section>
+
+            <!-- ================================================================
+             05 · THE CHAIN — the map for the rest of the talk         4:30 – 6:00
+             ================================================================ -->
+            <section data-background-color="#05070e">
+                <div class="stack-t">
+                    <p class="eyebrow">The map · every segment gets proved before we finish</p>
+                    <h2 class="statement wide" style="font-size: 50px; margin-bottom: 44px">
+                        One bounded job each. One identity each. One owner each.
+                    </h2>
+                    <div class="chain">
+                        <div class="node fragment custom" data-fragment-index="0">
+                            <span class="n">01</span><span class="k">Detect</span>
+                            <span class="v">Specialized model. Signal, never verdict.</span>
+                        </div>
+                        <div class="node fragment custom" data-fragment-index="1">
+                            <span class="n">02</span><span class="k">Retrieve</span>
+                            <span class="v">Entitlements applied before scoring.</span>
+                        </div>
+                        <div class="node fragment custom" data-fragment-index="2">
+                            <span class="n">03</span><span class="k">Explain</span>
+                            <span class="v">Cites. Cannot decide or calculate.</span>
+                        </div>
+                        <div class="node fragment custom" data-fragment-index="3">
+                            <span class="n">04</span><span class="k">Validate</span>
+                            <span class="v">Deterministic rules outside the model.</span>
+                        </div>
+                        <div class="node fragment custom" data-fragment-index="4">
+                            <span class="n">05</span><span class="k">Approve</span>
+                            <span class="v">A named human on this exact proposal.</span>
+                        </div>
+                        <div class="node fragment custom" data-fragment-index="5">
+                            <span class="n">06</span><span class="k">Write</span>
+                            <span class="v">Exactly one component may act.</span>
+                        </div>
+                        <div class="node fragment custom" data-fragment-index="6">
+                            <span class="n">07</span><span class="k">Prove</span>
+                            <span class="v">A hash chain, not a log.</span>
+                        </div>
+                    </div>
+                    <p class="detail fragment" data-fragment-index="7">
+                        The reasoning plane has <strong>no method through which it could write,
+                            approve or decide</strong>. That is not a convention — an import-graph
+                        test fails the build if it ever acquires one.
+                    </p>
+                </div>
+                <div class="foot">
+                    <span>Draw the workflow. Do not discover it at run time.</span>
+                    <span>4:30</span>
+                </div>
+                <aside class="notes">
+                    4:30–6:00 · Build the seven nodes at pace — roughly ten seconds each.
+                    This diagram comes back as a strip at the top of every section slide,
+                    so spend the time here and never re-explain it.
+
+                    The last fragment is the one that separates this from a slideware
+                    architecture: the boundary is enforced by a test, not a diagram.
+                </aside>
+            </section>
+
+            <!-- ================================================================
+             06 · WHY NOT FRONTIER MODELS                              6:00 – 7:30
+             ================================================================ -->
+            <section data-background-color="#05070e">
+                <div class="stack-t">
+                    <div class="chainbar" data-at="0"></div>
+                    <p class="eyebrow">Why not frontier models?</p>
+                    <h2 class="statement wide" style="margin-bottom: 40px">
+                        The dominant constraint chooses the component.
+                    </h2>
+                    <div class="cols c4">
+                        <div class="col">
+                            <p class="h">Latency</p>
+                            <p class="b">Real-time answers in milliseconds. A frontier round trip is orders of magnitude
+                                slower.</p>
+                        </div>
+                        <div class="col">
+                            <p class="h">Accuracy</p>
+                            <p class="b">On a narrow, well-labelled task, task fit beats model size.</p>
+                        </div>
+                        <div class="col">
+                            <p class="h">Cost</p>
+                            <p class="b">Unit cost decides whether a workload survives its own success.</p>
+                        </div>
+                        <div class="col">
+                            <p class="h">Throughput</p>
+                            <p class="b">Millions of cheap, repeatable predictions. Batch and stream, not chat.</p>
+                        </div>
+                    </div>
+                    <p class="detail fragment" style="margin-top: 40px">
+                        A frontier model is not your authoritative calculator, your millisecond
+                        detector, your high-volume transaction scorer, your safety interlock,
+                        or <strong>the sole writer to your system of record</strong>.
+                    </p>
+                    <p class="detail fragment" style="margin-top: 26px">
+                        In this workflow the detector is one configuration value:
+                        <strong>a deterministic mock, a local ONNX graph, or an Azure ML endpoint</strong>.
+                        All three satisfy one protocol, so the argument is about fit — not about
+                        which vendor is winning this quarter.
+                    </p>
+                </div>
+                <div class="foot">
+                    <span>Not an argument against frontier models. An argument for fit.</span>
+                    <span>6:00</span>
+                </div>
+                <aside class="notes">
+                    6:00–7:30 · Four constraints, one sentence each, no elaboration.
+
+                    Then the disqualification line, slowly — it is the sentence people write down.
+                    Ask the room the question that makes it actionable: which single constraint
+                    would disqualify a frontier model for your workload? If you cannot name one,
+                    use it. If you can name three, you already have your architecture.
+
+                    The last fragment is the proof: swapping detector implementations is a config
+                    value because they share a protocol. Mention that the ONNX and Azure ML
+            </section>
+
+            <!-- ================================================================
+             07 · THE HYBRID THESIS — detection to enterprise action   7:30 – 9:00
+             ================================================================ -->
+            <section data-background-color="#05070e">
+                <div class="stack-t">
+                    <div class="chainbar" data-at="0"></div>
+                    <h2 class="statement wide" style="margin-bottom: 28px">
+                        The CNN finds the defect.<br />The <em>platform</em> determines what happens next.
+                    </h2>
+                    <p class="detail" style="margin-bottom: 28px">
+                        The detector produces a signal. It cannot decide what the business
+                        does next — and that is where the durable value and the durable spend
+                        both sit.
+                    </p>
+                    <div class="cols c4">
+                        <div class="col">
+                            <p class="h">Manufacturing</p>
+                            <p class="b">Vision detects · retrieval supplies the standard · a scoped writer raises the
+                                work order.</p>
+                        </div>
+                        <div class="col">
+                            <p class="h">Fraud</p>
+                            <p class="b">Score triggers · policy constrains · the agent assembles the case · a human
+                                authorises.</p>
+                        </div>
+                        <div class="col">
+                            <p class="h">Forecasting</p>
+                            <p class="b">The forecast sets quantity · knowledge supplies the policy · the workflow
+                                writes to ERP.</p>
+                        </div>
+                        <div class="col">
+                            <p class="h">Claims &amp; permits</p>
+                            <p class="b">Same shape again. Substitute the signal and the system of record.</p>
+                        </div>
+                    </div>
+                    <p class="detail fragment" style="margin-top: 30px">
+                        Four industries, one architecture. The components change;
+                        <strong>the responsibilities do not</strong>.
+                    </p>
+                </div>
+                <div class="foot">
+                    <span class="cue">The model creates capability. The platform creates accountability.</span>
+                    <span>7:30</span>
+                </div>
+                <aside class="notes">
+                    7:30–9:00 · Read the title aloud, then stop and count to three before the
+                    next sentence. This is the pause the whole talk is built around; do not
+                    step on it.
+
+                    Walk the sentence once, slowly. The model's entire contribution is a number
+                    on a queue — a real achievement, but nobody has been helped yet. Everything
+                    after the prediction event is what creates the accountability.
+
+                    The four columns are repetition, not novelty. Do not read all four; pick the
+                    two closest to the industries in the room. Land the anchor line for the
+                    second time and advance.
+                </aside>
+            </section>
+
+            <!-- ================================================================
+             08 · LIVE 2 — entitlement                                 9:00 – 10:45
+             ================================================================ -->
+            <section data-background-color="#05070e">
+                <div class="stack">
+                    <div class="chainbar" data-at="1"></div>
+                    <p class="eyebrow">Live · 2 of 5</p>
+                    <h2 class="statement wide">
+                        Two identities. One index.<br />Two different <em>correct</em> answers.
+                    </h2>
+                    <p class="cmd">reap demo run --scenario restricted-classification</p>
+                </div>
+                <div class="foot">
+                    <span class="cue">Trimming happens before scoring — never as a post-filter on the answer</span>
+                    <span>9:00</span>
+                </div>
+                <aside class="notes">
+                    9:00–10:45 · Run it. Point at the trimmed count on the retrieval step.
+
+                    The line that matters: "The entitlement filter runs before ranking, not
+                    after. There is a test that asks for top_k=1 and requires a real result —
+                    because a post-filter that silently returns nothing looks identical to
+                    a system that found nothing."
+
+                    Then: "Empty entitlements means entitled to nothing. Also a test."
+                </aside>
+            </section>
+
+            <!-- ================================================================
+             09 · GROUNDING IS A DATA PRODUCT                          10:45 – 11:45
+             ================================================================ -->
+            <section data-background-color="#05070e">
+                <div class="stack">
+                    <div class="chainbar" data-at="1"></div>
+                    <p class="eyebrow">Four questions decide whether a corpus is indexed at all</p>
+                    <ol class="asks">
+                        <li>Who owns it?</li>
+                        <li>Is it authoritative?</li>
+                        <li>How fast must it refresh?</li>
+                        <li>Who is entitled to see it?</li>
+                    </ol>
+                </div>
+                <div class="foot">
+                    <span>A source that cannot answer these manufactures confident answers nobody stands behind.</span>
+                    <span>10:45</span>
+                </div>
+                <aside class="notes">
+                    10:45–11:45 · One minute. Read the four questions, land the kicker, move.
+
+                    If asked about retrieval strategy: hybrid is the production default,
+                    agentic retrieval is a benchmark decision and it grows the authorization
+                    surface, not just the token bill.
+                </aside>
+            </section>
+
+            <!-- ================================================================
+             10 · ROUTING IS A CONTROL POINT                           11:45 – 12:45
+             ================================================================ -->
+            <section data-background-color="#05070e">
+                <div class="stack-t">
+                    <div class="chainbar" data-at="2"></div>
+                    <h2 class="statement wide" style="margin-bottom: 40px">
+                        A route you cannot explain afterwards is not a policy.<br />
+                        It is a <em>coincidence</em>.
+                    </h2>
+                    <div class="cols c3">
+                        <div class="col">
+                            <p class="h">Decided on</p>
+                            <p class="b">Capability, latency budget, classification, residency and cost ceiling.</p>
+                        </div>
+                        <div class="col">
+                            <p class="h">Enforced at</p>
+                            <p class="b">The gateway, as versioned policy — never inside a prompt, never in application
+                                code.</p>
+                        </div>
+                        <div class="col">
+                            <p class="h">Recorded as</p>
+                            <p class="b">Route, reason and policy version stamped onto the trace before the call is
+                                issued.</p>
+                        </div>
+                    </div>
+                    <p class="detail fragment" style="margin-top: 42px">
+                        Hold this one thought for three minutes: when the audit receipt comes up,
+                        <strong>step 2 · select_route → mock-reasoner</strong> is on it, beside the
+                        reason it was chosen. Routing decides which model runs, where it runs, and
+                        what data crosses a boundary. That makes it a security control with an
+                        owner, not a cost trick.
+                    </p>
+                </div>
+                <div class="foot">
+                    <span>Residency and sensitivity rules belong at the gateway, not in a prompt.</span>
+                    <span>11:45</span>
+                </div>
+                <aside class="notes">
+                    11:45–12:45 · Short slide. Three columns, one line each.
+
+                    The fragment plants the callback — tell them to watch for the route decision
+                    on the audit receipt two slides from now, then point at it when it appears.
+                    A promise kept on screen is worth more than a claim made here.
+
+                    If asked about fallback: a rising fallback rate is the early warning that
+                    capacity or policy has drifted away from the traffic it was designed for.
+                </aside>
+            </section>
+
+            <!-- ================================================================
+             11 · LIVE 3 — the verdict                                 12:45 – 14:45
+             ================================================================ -->
+            <section data-background-color="#05070e">
+                <div class="stack-t">
+                    <div class="chainbar" data-at="3"></div>
+                    <p class="eyebrow">Live · 3 of 5</p>
+                    <h2 class="statement wide" style="margin-bottom: 38px">
+                        A rule id, a version and a file hash.<br /><em>Not a prompt.</em>
+                    </h2>
+                    <div class="term">
+                        <div class="bar">
+                            <i></i><i></i><i></i>
+                            <span class="path">step 6-7 · policy_engine</span>
+                        </div>
+                        <pre class="sm">
+  disposition                <span class="c">stop_line</span>
+  matched rules              <span class="b">R030-structural-crack</span>
+                             G001-no-write-without-approval
+                             G003-stale-evidence
+  reason codes               CRITICAL_SAFETY_DEFECT, STALE_EVIDENCE_REQUIRES_APPROVAL
+  policy version             <span class="b">2.5.0</span> · <span class="u">sha256:e248eed66e0…</span>
+  permitted actions          quarantine_batch, create_incident, notify_supervisor
+</pre>
+                    </div>
+                    <div class="chips">
+                        <b><em>8</em> rules · <em>3</em> guards</b>
+                        <b>first-match-wins</b>
+                        <b>ascending rule ids, enforced by a test</b>
+                        <b>guards can only narrow</b>
+                    </div>
+                </div>
+                <div class="foot">
+                    <span class="cue">Same input, same policy version → same decision. Every time.</span>
+                    <span>12:45</span>
+                </div>
+                <aside class="notes">
+                    12:45–14:45 · The best story in the deck — tell it.
+
+                    "The ordering test caught a real bug in this repository. Rule R045 was
+                    added below a broader rule R040 and could never fire. Dead governance
+                    that reviews as correct. A test that asserts rule ids ascend found it."
+
+                    Then the injection point: "Retrieved content is data, never instruction.
+                    Policy reads structured metadata, not prose — so an instruction injected
+                    into a document cannot move a verdict. Not because we filter the phrasing.
+                    Because the verdict never reads the phrasing."
+                </aside>
+            </section>
+
+            <!-- ================================================================
+             12 · AUTHORITY — the six refusals                         14:45 – 16:00
+             ================================================================ -->
+            <section data-background-color="#05070e">
+                <div class="stack-t">
+                    <div class="chainbar" data-at="5"></div>
+                    <h2 class="statement wide" style="margin-bottom: 34px">
+                        Six refusals precede any write. <em>In order.</em>
+                    </h2>
+                    <ol class="steps">
+                        <li>Policy allowed the disposition <span>policy_engine</span></li>
+                        <li>Action is in the permitted set <span>policy_engine</span></li>
+                        <li>Approval verified against the proposal fingerprint <span>approvals</span></li>
+                        <li>Connector supports this action kind <span>connectors</span></li>
+                        <li>Idempotency key has not been seen <span>writer</span></li>
+                        <li>Dry-run gate <span>writer</span></li>
+                    </ol>
+                </div>
+                <div class="foot">
+                    <span>The model never writes. The writer never reasons.</span>
+                    <span>14:45</span>
+                </div>
+                <aside class="notes">
+                    14:45–16:00 · Do not read all six. Read one and three, then say:
+
+                    "A contract test reads the import graph and fails the build if any module
+                    outside the writer acquires a path to a connector. A second test uses
+                    source inspection to prove the approval check appears before the write
+                    attempt — because ordering that is only true today is not a control."
+
+                    Dual control: "Two distinct principals. One person clicking twice does
+                    not satisfy it, and there is a test named after exactly that."
+                </aside>
+            </section>
+
+            <!-- ================================================================
+             13 · LIVE 4 — the audit chain                             16:00 – 17:30
+             ================================================================ -->
+            <section data-background-color="#05070e">
+                <div class="stack-t">
+                    <div class="chainbar" data-at="6"></div>
+                    <p class="eyebrow">Live · 4 of 5</p>
+                    <h2 class="statement wide" style="margin-bottom: 34px">A chain, not a log.</h2>
+                    <div class="term">
+                        <div class="bar">
+                            <i></i><i></i><i></i>
+                            <span class="path">step 11 · hash-chained audit receipt</span>
+                        </div>
+                        <pre class="sm">
+  chain head   <span class="u">sha256:fd158e1df2e149a30c8…</span>          <span class="g">[PASS] chain verifies</span>
+
+  #  step                  component      outcome
+  <span class="d">─  ────────────────────  ─────────────  ────────────────</span>
+  0  receive_prediction    detector       structural_crack
+  1  retrieve_evidence     retrieval      retrieved
+  2  select_route          model_router   mock-reasoner
+  3  generate_explanation  reasoning      generated
+  4  evaluate_policy       policy_engine  <span class="c">stop_line</span>
+  5  request_approval      approvals      <span class="c">pending</span>
+  6  execute_write         scoped_writer  <span class="c">dry_run</span>
+</pre>
+                    </div>
+                    <p class="detail" style="margin-top: 30px">
+                        Attributes are redacted <strong>on the way in</strong>, so the receipt
+                        never holds a prompt or a payload value. A halted transaction is sealed
+                        too — the run that stopped is the one you will be asked about.
+                    </p>
+                </div>
+                <div class="foot">
+                    <span class="cue">An audit record that can be quietly deleted is not evidence.</span>
+                    <span>16:00</span>
+                </div>
+                <aside class="notes">
+                    16:00–17:30 · Show the real thing.
+
+                    Say the gap out loud: "In this local demo that file can be deleted by
+                    anyone who can delete a file. The Bicep module provisions the container
+                    with an immutability policy — and that template has never been deployed,
+                    so the enforced version does not exist anywhere yet. That gap is written
+                    down in IMPLEMENTATION_STATUS.md, not discovered by you in a review."
+                </aside>
+            </section>
+
+            <!-- ================================================================
+             14 · LIVE 5 — the gate                                    17:30 – 19:15
+             ================================================================ -->
+            <section data-background-color="#05070e">
+                <div class="stack">
+                    <p class="eyebrow">Live · 5 of 5</p>
+                    <h2 class="statement wide">
+                        If you cannot <em>fail the build</em> on quality,<br />
+                        you do not have an evaluation framework.
+                    </h2>
+                    <p class="cmd">make eval</p>
+                    <div class="chips">
+                        <b><em>16</em> cases · golden, edge, adversarial</b>
+                        <b><em>7</em> blocking graders</b>
+                        <b>deterministic graders first</b>
+                        <b>uncalibrated model grader excluded from the blocking set</b>
+                    </div>
+                </div>
+                <div class="foot">
+                    <span class="cue">Grade the tail and the adversarial set separately — a good average hides the
+                        failure that matters</span>
+                    <span>17:30</span>
+                </div>
+                <aside class="notes">
+                    17:30–19:15 · Run it. Then break it if you have time: raise a threshold
+                    in the config and show it exit non-zero. A gate you have never seen fail
+                    is a gate you cannot claim.
+
+                    The honest note: "The model-based groundedness grader is uncalibrated,
+                    so it is deliberately excluded from the blocking set. A grader you have
+                    not calibrated is an opinion with a decimal point."
+                </aside>
+            </section>
+
+            <!-- ================================================================
+             15 · THE AGENT TRAP — five failures, five controls        19:15 – 20:15
+             ================================================================ -->
+            <section data-background-color="#05070e">
+                <div class="stack-t">
+                    <h2 class="statement wide" style="margin-bottom: 20px">
+                        Five failures that look like model problems.
+                    </h2>
+                    <p class="detail" style="margin-bottom: 40px">
+                        None of them are fixed by a better prompt or a bigger model. You have just
+                        watched the control that closes each one.
+                    </p>
+                    <div class="cols c5">
+                        <div class="col">
+                            <p class="h">Hallucination</p>
+                            <p class="b">A fluent answer with no source. <em>Closed by</em> grounding and citation
+                                validation.</p>
+                        </div>
+                        <div class="col">
+                            <p class="h">Missing grounding</p>
+                            <p class="b">Improvises from training data. <em>Closed by</em> entitlement-aware retrieval.
+                            </p>
+                        </div>
+                        <div class="col">
+                            <p class="h">Missing evaluation</p>
+                            <p class="b">Demo prompts and a subjective read. <em>Closed by</em> a gate that fails the
+                                build.</p>
+                        </div>
+                        <div class="col">
+                            <p class="h">Security risk</p>
+                            <p class="b">Shared identity, over-broad tools. <em>Closed by</em> the six refusals and one
+                                writer.</p>
+                        </div>
+                        <div class="col">
+                            <p class="h">Operational risk</p>
+                            <p class="b">No owner, no SLO, no rollback. <em>Closed by</em> the audit chain and a named
+                                owner.</p>
+                        </div>
+                    </div>
+                    <p class="detail fragment" style="margin-top: 42px">
+                        The tell is the team that responds to each of these by changing the prompt
+                        or changing the model. <strong>Model intent is never proof of user
+                            authorization</strong> — authorization is enforced outside the model.
+                    </p>
+                </div>
+                <div class="foot">
+                    <span>Every one of these is an architecture gap wearing a model costume.</span>
+                    <span>19:15</span>
+                </div>
+                <aside class="notes">
+                    19:15–20:15 · This is a recap, not a preview — that is why it sits here rather
+                    than at the front. Each failure names a control the room has already watched run.
+
+                    Attribute the failures to design rather than to a model vendor; it keeps the
+                    room technical instead of tribal. Say: "every one of these is fixed outside
+                    the model."
+
+                    If you are behind, read three of the five and say the remaining two are in
+                    the handout.
+                </aside>
+            </section>
+
+            <!-- ================================================================
+             16 · READY AI                                             20:15 – 21:30
+             ================================================================ -->
+            <section data-background-color="#05070e">
+                <div class="stack-t">
+                    <p class="eyebrow">READY AI · an original field framework</p>
+                    <h2 class="statement wide" style="margin-bottom: 44px">
+                        Readiness is <em>evidence</em>, not confidence.
+                    </h2>
+                    <div class="cols c3">
+                        <div class="col">
+                            <p class="h">R · Retrieval 15%</p>
+                            <p class="b">Corpus authority, ACL tests, citation validation, freshness</p>
+                        </div>
+                        <div class="col">
+                            <p class="h">E · Evaluation 20%</p>
+                            <p class="b">Golden and adversarial sets, graders, release thresholds</p>
+                        </div>
+                        <div class="col">
+                            <p class="h">A · Architecture 15%</p>
+                            <p class="b">Boundaries, state, capacity, failure modes, rollback</p>
+                        </div>
+                        <div class="col">
+                            <p class="h">D · Data governance 15%</p>
+                            <p class="b">Classification, lineage, residency, retention, deletion</p>
+                        </div>
+                        <div class="col">
+                            <p class="h">Y · Yield operations 15%</p>
+                            <p class="b">SLOs, deployment, cost per task, incidents, value</p>
+                        </div>
+                        <div class="col cool">
+                            <p class="h">AI trust overlay 20%</p>
+                            <p class="b">Scored across every dimension above — never separately</p>
+                        </div>
+                    </div>
+                    <p class="label-note">
+                        READY AI is an original field framework. It is not a Microsoft standard,
+                        product or official guidance. Levels: 0 absent · 1 explore · 2 engineer ·
+                        3 operate · 4 scale. Each level requires an artefact — a dataset, a test,
+                        a runbook, a signed approval.
+                    </p>
+                </div>
+                <div class="foot">
+                    <span>Recommended gate: overall ≥ 60, and nothing below Level 2.</span>
+                    <span>20:15</span>
+                </div>
+                <aside class="notes">
+                    20:15–21:30 · Say the disclaimer out loud, first, every time.
+
+                    Do not walk all six boxes. Say: "Five dimensions, one overlay that is
+                    scored inside all of them rather than beside them, because security that
+                    is a separate column is security that is somebody else's column."
+                </aside>
+            </section>
+
+            <!-- ================================================================
+             17 · THE SCORE — this repository, failing                 21:30 – 23:00
+             ================================================================ -->
+            <section data-background-color="#05070e">
+                <div class="stack-t">
+                    <p class="eyebrow">I scored the reference implementation for my own framework</p>
+                    <div class="score">
+                        <span class="num">42.5</span>
+                        <span class="of">/ 100 · band: engineer</span>
+                        <span class="verdict" style="margin-left: 20px">RELEASE GATE: FAIL</span>
+                    </div>
+                    <div class="dims" style="margin-top: 46px">
+                        <div class="dim-row"><span class="lbl">Evaluation framework</span><span class="track"><span
+                                    class="fill" style="width: 50%"></span></span><span class="lvl">ENGINEER</span>
+                        </div>
+                        <div class="dim-row"><span class="lbl">AI trust overlay</span><span class="track"><span
+                                    class="fill" style="width: 50%"></span></span><span class="lvl">ENGINEER</span>
+                        </div>
+                        <div class="dim-row"><span class="lbl">Architecture &amp; design</span><span class="track"><span
+                                    class="fill" style="width: 50%"></span></span><span class="lvl">ENGINEER</span>
+                        </div>
+                        <div class="dim-row"><span class="lbl">Retrieval strategy</span><span class="track"><span
+                                    class="fill" style="width: 50%"></span></span><span class="lvl">ENGINEER</span>
+                        </div>
+                        <div class="dim-row low"><span class="lbl">Data governance</span><span class="track"><span
+                                    class="fill" style="width: 25%"></span></span><span class="lvl">EXPLORE</span></div>
+                        <div class="dim-row low"><span class="lbl">Yield operations</span><span class="track"><span
+                                    class="fill" style="width: 25%"></span></span><span class="lvl">EXPLORE</span></div>
+                    </div>
+                    <p class="detail fragment" style="margin-top: 40px">
+                        <strong>Fix the lowest critical dimension first.</strong> No Purview
+                        classification or lineage is wired in — authority is asserted in a
+                        fixture rather than inherited from a governed source. That is the
+                        next thing I build, and the framework told me so.
+                    </p>
+                </div>
+                <div class="foot">
+                    <span class="cue">reap ready · captured 2026-08-28</span>
+                    <span>21:30</span>
+                </div>
+                <aside class="notes">
+                    21:30–23:00 · THE MOST IMPORTANT SLIDE IN THE DECK. Slow down.
+
+                    "I built the reference implementation for this framework and it does not
+                    pass my own gate. Forty-two and a half. It fails on data governance and
+                    on yield operations, and it should — nothing here has been deployed, the
+                    cost units are dimensionless, and there is no on-call rotation for a
+                    thing that does not run."
+
+                    Then the point: "A readiness framework that always scores its author well
+                    is a marketing artifact. This one produced a ranked remediation backlog
+                    with owners and dates, and the top item is the one I least wanted to see."
+
+                    Expect the room to lean in here. This is where you earn the Q&A.
+                </aside>
+            </section>
+
+            <!-- ================================================================
+             18 · CLOSE — three lessons                                23:00 – 24:00
+             ================================================================ -->
+            <section data-background-color="#05070e">
+                <div class="stack">
+                    <p class="eyebrow">Take these to your architecture review</p>
+                    <ol class="asks" style="margin-bottom: 44px">
+                        <li class="fragment">Start with the workload. The constraint chooses the architecture.</li>
+                        <li class="fragment">Constrain authority. One bounded job, one identity, one permitted set.</li>
+                        <li class="fragment">Measure the outcome, or none of the above mattered.</li>
+                    </ol>
+                    <p class="detail fragment">
+                        <strong>Score one real workload this month.</strong> Then fix the lowest
+                        critical dimension before the next release — and turn the fix into a
+                        shared service, so the next team starts at Level 2 instead of at zero.
+                    </p>
+                </div>
+                <div class="foot">
+                    <span class="cue">The model creates capability. The platform creates accountability.</span>
+                    <span>23:00</span>
+                </div>
+                <aside class="notes">
+                    23:00–24:00 · Three fragments, one line each. Then the challenge.
+                    Do not close here — one page follows, and it is the page they keep.
+                </aside>
+            </section>
+
+            <!-- ================================================================
+             19 · THE ONE PAGE TO REMEMBER                             24:00 – 25:00
+             ================================================================ -->
+            <section data-background-color="#05070e">
+                <div class="stack-t">
+                    <p class="eyebrow">If you threw away every other slide</p>
+                    <h2 class="statement wide" style="margin-bottom: 44px">
+                        Five layers. One product.<br />One score that counts.
+                    </h2>
+                    <ol class="steps">
+                        <li>Predictive AI<span>the operational intelligence layer — detects, scores, forecasts</span>
+                        </li>
+                        <li>Agents<span>the experience layer — converse, coordinate, act inside limits</span></li>
+                        <li>Retrieval &amp; models<span>the intelligence layer — ground, reason, explain</span></li>
+                        <li>Governance &amp; security<span>the trust layer — identity, policy, evidence, audit</span>
+                        </li>
+                        <li>Platform &amp; operations<span>the product — shared, owned, monitored, reusable</span></li>
+                    </ol>
+                    <p class="detail fragment" style="margin-top: 38px">
+                        And the <strong>business outcome</strong> is the only score that
+                        counts. Measure it, or none of the above mattered.
+                    </p>
+                </div>
+                <div class="foot">
+                    <span class="cue">The model creates capability. The platform creates accountability.</span>
+                    <span>24:00</span>
+                </div>
+                <aside class="notes">
+                    24:00–25:00 · Stop moving. Deliver the five lines slowly, one per
+                    breath, then pause for two full seconds before the anchor line.
+
+                    Say the anchor line for the fourth and final time, then the challenge
+                    looking at the back of the room, not at the screen:
+                    "Assess the platform, not just the agent. Score one workload with
+                    READY AI and fix the lowest critical dimension before your next
+                    release. Not the whole portfolio. One workload, one dimension."
+
+                    Then stop talking. Hold this slide through questions.
+                </aside>
+            </section>
+
+            <!-- ================================================================
+             20 · QUESTIONS
+             ================================================================ -->
+            <section data-background-color="#05070e">
+                <div class="stack">
+                    <div class="title-rule"></div>
+                    <h1 style="font-size: 88px">Questions</h1>
+                    <p class="detail" style="margin-top: 34px; font-size: 24px">
+                        Appendix follows — not presented. Press <b style="color: var(--paper)">ESC</b>
+                        for the slide grid and jump to the one the question needs.
+                    </p>
+                </div>
+                <aside class="notes">
+                    Appendix map:
+                    A1 governed MCP · A2 multi-agent · A3 security topology ·
+                    A4 cost · A5 model selection · A6 what is real in the repo.
+                </aside>
+            </section>
+
+            <!-- ================================================================
+             APPENDIX · A1 — governed MCP and tool calling
+             ================================================================ -->
+            <section data-background-color="#070b14">
+                <p class="appendix-tag">Appendix A1 · not presented</p>
+                <div class="stack">
+                    <h2 class="statement wide">
+                        MCP standardises access to capability.<br />It does not grant <em>authority</em>.
+                    </h2>
+                    <div class="cols c3" style="margin-top: 20px">
+                        <div class="col">
+                            <p class="h">Every tool is an API product</p>
+                            <p class="b">Owner, schema, classification, allowed operations, rate limits, audit,
+                                revocation path.</p>
+                        </div>
+                        <div class="col">
+                            <p class="h">Distinct identity per tool</p>
+                            <p class="b">Least privilege, input validation, fast revocation. No shared principals.</p>
+                        </div>
+                        <div class="col">
+                            <p class="h">Enforcement stays outside</p>
+                            <p class="b">Model intent is never proof of user authorization. Entra and APIM decide.</p>
+                        </div>
+                    </div>
+                </div>
+                <aside class="notes">
+                    Use when asked "do you support MCP?" The answer is that MCP is a transport
+                    question and the interesting question is what the tool is allowed to do
+                    once it is reachable.
+                </aside>
+            </section>
+
+            <!-- ================================================================
+             APPENDIX · A2 — multi-agent
+             ================================================================ -->
+            <section data-background-color="#070b14">
+                <p class="appendix-tag">Appendix A2 · not presented</p>
+                <div class="stack">
+                    <h2 class="statement wide">
+                        Add an agent only when it owns something <em>no other agent owns</em>.
+                    </h2>
+                    <div class="cols c3" style="margin-top: 20px">
+                        <div class="col">
+                            <p class="h">When it helps</p>
+                            <p class="b">Genuinely distinct tools, context, policy or lifecycle. Domain isolation and
+                                independent release cadence.</p>
+                        </div>
+                        <div class="col">
+                            <p class="h">What it costs</p>
+                            <p class="b">Coordination overhead, cascading failures, duplicated state, opaque hand-offs,
+                                an evaluation surface that grows per participant.</p>
+                        </div>
+                        <div class="col">
+                            <p class="h">What it requires</p>
+                            <p class="b">Hand-off contracts, termination rules, separate identities, and system-level
+                                evaluation of the outcome.</p>
+                        </div>
+                    </div>
+                    <p class="label-note">
+                        The common mistake is one agent per organisational role. A deterministic
+                        workflow calling one agent is often the better answer — it is the answer
+                        this repository chose, and ADR-0002 records why.
+                    </p>
+                </div>
+            </section>
+
+            <!-- ================================================================
+             APPENDIX · A3 — security topology
+             ================================================================ -->
+            <section data-background-color="#070b14">
+                <p class="appendix-tag">Appendix A3 · not presented</p>
+                <div class="stack">
+                    <h2 class="statement wide">
+                        Security is a <em>topology</em> decision, not a checkbox before launch.
+                    </h2>
+                    <div class="cols c2" style="margin-top: 20px">
+                        <div class="col">
+                            <p class="h">The AI-specific threats</p>
+                            <p class="b">Prompt injection through retrieved content, over-broad tool permissions, state
+                                and memory leakage across users, model and index poisoning.</p>
+                        </div>
+                        <div class="col">
+                            <p class="h">What actually contains them</p>
+                            <p class="b">Identity, tool contracts, network boundaries and deterministic validation. Not
+                                prompt text.</p>
+                        </div>
+                    </div>
+                    <p class="detail" style="margin-top: 40px">
+                        The most overlooked leak is telemetry. Redaction here happens
+                        <strong>in the log formatter</strong>, so no call site can bypass it —
+                        including one that invents a new field name tomorrow.
+                    </p>
+                </div>
+            </section>
+
+            <!-- ================================================================
+             APPENDIX · A4 — cost
+             ================================================================ -->
+            <section data-background-color="#070b14">
+                <p class="appendix-tag">Appendix A4 · not presented</p>
+                <div class="stack">
+                    <h2 class="statement wide">
+                        Tokens are one meter. They are not the outcome.
+                    </h2>
+                    <div class="cols c4" style="margin-top: 20px">
+                        <div class="col">
+                            <p class="h">Right-size</p>
+                            <p class="b">Route to the smallest model that passes the benchmark.</p>
+                        </div>
+                        <div class="col">
+                            <p class="h">Cut the work</p>
+                            <p class="b">Cache, batch, trim context, deduplicate retrieval.</p>
+                        </div>
+                        <div class="col">
+                            <p class="h">Limit in the platform</p>
+                            <p class="b">Budgets, quotas, circuit breakers and per-tenant caps at the gateway.</p>
+                        </div>
+                        <div class="col">
+                            <p class="h">Measure the right unit</p>
+                            <p class="b">Cost per completed task, with the correction rate beside it.</p>
+                        </div>
+                    </div>
+                    <p class="label-note">
+                        The cost ledger in this repository attributes consumption across nine
+                        services and <strong>refuses to emit a currency figure without a supplied
+                            rate card</strong>. Units are facts. Prices are the customer's.
+                    </p>
+                </div>
+            </section>
+
+            <!-- ================================================================
+             APPENDIX · A5 — model selection
+             ================================================================ -->
+            <section data-background-color="#070b14">
+                <p class="appendix-tag">Appendix A5 · not presented</p>
+                <div class="stack">
+                    <h2 class="statement wide">Choose the family from the task and the non-functional needs.</h2>
+                    <div class="cols c2" style="margin-top: 10px; gap: 18px 44px">
+                        <div class="col">
+                            <p class="h">Frontier</p>
+                            <p class="b">Broad reasoning, high cost — synthesis, unfamiliar tasks, orchestration.</p>
+                        </div>
+                        <div class="col">
+                            <p class="h">Small language model</p>
+                            <p class="b">Bounded language and routing, low latency, edge-capable.</p>
+                        </div>
+                        <div class="col">
+                            <p class="h">CNN / YOLO / ViT</p>
+                            <p class="b">Very low latency, very high throughput — detection and inspection.</p>
+                        </div>
+                        <div class="col">
+                            <p class="h">Forecasting</p>
+                            <p class="b">Explainable, high throughput — demand, capacity, maintenance.</p>
+                        </div>
+                        <div class="col">
+                            <p class="h">Fraud / recommendation</p>
+                            <p class="b">Millisecond scoring at volume with explicit thresholds.</p>
+                        </div>
+                        <div class="col">
+                            <p class="h">Rules engine</p>
+                            <p class="b">Exact, fastest, fully explainable — eligibility, limits, calculations, writes.
+                            </p>
+                        </div>
+                    </div>
+                    <p class="label-note">
+                        Hybrid usually wins: the highest system-level task fit comes from several
+                        bounded components, not one model. Benchmark on your workload — popularity
+                        is not a selection criterion.
+                    </p>
+                </div>
+            </section>
+
+            <!-- ================================================================
+             APPENDIX · A6 — what is actually real
+             ================================================================ -->
+            <section data-background-color="#070b14">
+                <p class="appendix-tag">Appendix A6 · not presented · the honest slide</p>
+                <div class="stack">
+                    <h2 class="statement wide">What in this repository is real?</h2>
+                    <div class="cols c3" style="margin-top: 10px">
+                        <div class="col">
+                            <p class="h">Complete</p>
+                            <p class="b">Contracts, policy engine, approvals, scoped writer, audit chain, configuration
+                                and execution modes.</p>
+                        </div>
+                        <div class="col">
+                            <p class="h">Mocked or adapter only</p>
+                            <p class="b">Detector, reasoning, Azure Search, Azure ML, Foundry, all three connectors, the
+                                Monitor exporter.</p>
+                        </div>
+                        <div class="col">
+                            <p class="h">Never run</p>
+                            <p class="b">Anything against Azure. No Bicep deployed, no endpoint scored, no index
+                                queried, no trace exported.</p>
+                        </div>
+                    </div>
+                    <p class="label-note">
+                        The mock detector derives a defect distribution from a SHA-256 hash and
+                        <strong>carries no accuracy claim of any kind</strong>. The local vector
+                        component is a hashed-trigram lexical embedding, not a semantic model —
+                        it exists to exercise the hybrid merge path offline. Every one of these
+                        gaps, its production implication and its next action is written down in
+                        <b style="color: var(--paper)">IMPLEMENTATION_STATUS.md</b>.
+                    </p>
+                </div>
+                <aside class="notes">
+                    If anyone asks "is this real?", go here. Answering this slide honestly is
+                    worth more than any other slide in the deck.
+                </aside>
+            </section>
+
+        </div>
+    </div>
+    <script type="module" src="/main.js"></script>
+</body>
+
+</html>

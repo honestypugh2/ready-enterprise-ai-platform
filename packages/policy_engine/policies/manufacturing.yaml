@@ -8,7 +8,7 @@
 # Evaluation is ordered first-match-wins. Ordering is therefore part of the
 # contract: a rule cannot be reordered without a version bump and a test change.
 
-version: "2.5.0"
+version: "2.6.0"
 description: >-
   Severity, disposition, approval and permitted-action policy for surface and
   structural defect detection on synthetic lines DEMO-L1 through DEMO-L4.
@@ -24,7 +24,9 @@ defaults:
   # A policy whose default is "allow" is not a control.
 
 # Confidence below this floor means the signal is not trustworthy enough to act
-# on, regardless of which label was predicted.
+# on, regardless of which label was predicted, and regardless of what threshold
+# the detector was configured with. Policy sets its own floor because a model
+# must not be the thing that decides when its own output can be trusted.
 low_confidence_floor: 0.62
 
 rules:
@@ -55,11 +57,12 @@ rules:
 
   - id: R020-low-confidence
     description: >-
-      Below the decision threshold the detector has not established a defect.
-      Re-inspect rather than act; do not escalate to a work order on a signal
-      the model itself does not stand behind.
+      Below the policy floor the signal has not established a defect.
+      Re-inspect rather than act. Tested against the policy's own floor, not
+      the detector's threshold, so a permissively configured model cannot
+      lower the bar at which the platform is willing to act on it.
     when:
-      confidence_at_or_above_threshold: false
+      confidence_below_policy_floor: true
     then:
       allowed: true
       severity: minor

@@ -96,11 +96,49 @@ class TestRedactionByValuePattern:
         assert len(result) < 600
         assert result.endswith("[truncated]")
 
-    def test_a_long_unbroken_token_is_redacted_rather_than_truncated(self) -> None:
-        """Truncating a credential still leaks most of it. Anything long,
-        unbroken and base64-shaped is removed outright, even though that costs
-        some false positives on hashes."""
-        assert redact_value("A" * 5_000) == REDACTED
+    def test_a_long_unbroken_credential_is_redacted_rather_than_truncated(self) -> None:
+        """Truncating a credential still leaks most of it, so anything long,
+        unbroken and demonstrably base64 is removed outright."""
+        key = "kD9xQm2ZpL7vNwR4tY6uB8cE1gH3jK5nM0oP2qS4uW6yA8bC0dF2hJ4lN6pR8tV"
+        assert redact_value(key) == REDACTED
+
+
+class TestProvenanceSurvivesRedaction:
+    """Content hashes are the identifiers an audit receipt exists to carry.
+
+    A credential heuristic that cannot tell a hex digest from a base64 key was
+    silently replacing all three of these with `[redacted]`. The chain still
+    verified, which made it worse: the receipt looked valid and could no longer
+    say which frame was inspected or which policy version decided it.
+    """
+
+    HASH = "sha256:" + "ab" * 32
+
+    @pytest.mark.parametrize(
+        "field", ["input_hash", "policy_sha", "proposal_fingerprint", "chain_head"]
+    )
+    def test_governance_identifiers_are_preserved(self, field: str) -> None:
+        assert redact_attributes({field: self.HASH})[field] == self.HASH
+
+    def test_a_hash_inside_free_text_is_preserved(self) -> None:
+        result = redact_value(f"verified frame {self.HASH} against the baseline")
+        assert self.HASH in result
+
+    def test_a_credential_beside_a_hash_is_still_redacted(self) -> None:
+        """The hold-out must not become a way to smuggle a key past the scan."""
+        result = redact_value(f"{self.HASH} {JWT}")
+        assert self.HASH in result
+        assert JWT not in result
+
+    @pytest.mark.parametrize("algorithm", ["sha256", "sha512", "sha1", "md5"])
+    def test_other_digest_algorithms_are_preserved(self, algorithm: str) -> None:
+        digest = f"{algorithm}:{'cd' * 16}"
+        assert redact_value(digest) == digest
+
+    def test_a_sensitive_key_still_wins_over_preservation(self) -> None:
+        """Key-based redaction runs first and is not overridden. A hash arriving
+        under `password` is either mislabelled or a password."""
+        assert redact_attributes({"password": self.HASH})["password"] == REDACTED
 
 
 class TestTraceAttributes:

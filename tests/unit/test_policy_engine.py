@@ -102,6 +102,42 @@ class TestThresholdBoundaries:
         assert ActionKind.CREATE_WORK_ORDER not in decision.permitted_actions
         assert decision.approval_required is False
 
+    @pytest.mark.parametrize("detector_threshold", [0.62, 0.40, 0.20, 0.05])
+    def test_a_permissive_detector_cannot_lower_the_policy_floor(
+        self, policy: PolicyEngine, detector_threshold: float
+    ) -> None:
+        """The floor belongs to policy, not to the model.
+
+        R020 originally tested `confidence_at_or_above_threshold`, which reads
+        the detector's *own* threshold — so a model deployed with a permissive
+        threshold decided when its output was trustworthy enough to act on, and
+        `low_confidence_floor` in the policy document was never read by anything.
+        """
+        decision = policy.evaluate(
+            PolicyInput(
+                detection=make_detection(
+                    label="weld_porosity", confidence=0.41, threshold=detector_threshold
+                )
+            )
+        )
+        assert decision.disposition is Disposition.RE_INSPECT
+        assert "R020-low-confidence" in decision.matched_rules
+        assert ActionKind.CREATE_WORK_ORDER not in decision.permitted_actions
+
+    def test_the_policy_floor_is_actually_read_from_the_document(
+        self, policy: PolicyEngine
+    ) -> None:
+        """Guards against the setting becoming decorative again."""
+        floor = policy.document.low_confidence_floor
+        just_below = policy.evaluate(
+            PolicyInput(detection=make_detection(label="seal_gap", confidence=floor - 0.01))
+        )
+        at_floor = policy.evaluate(
+            PolicyInput(detection=make_detection(label="seal_gap", confidence=floor))
+        )
+        assert just_below.disposition is Disposition.RE_INSPECT
+        assert at_floor.disposition is not Disposition.RE_INSPECT
+
     @pytest.mark.parametrize(
         ("count", "expected"),
         [(2, Disposition.MAINTENANCE_WORK_ORDER), (3, Disposition.STOP_LINE)],

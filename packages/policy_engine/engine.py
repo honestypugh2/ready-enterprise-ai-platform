@@ -142,6 +142,9 @@ class PolicyEngine:
         detection = policy_input.detection
         label = detection.primary_label
         above_threshold = detection.primary_confidence >= detection.decision_threshold
+        # A detector configured with a permissive threshold would otherwise be
+        # deciding when its own output is trustworthy. The floor is policy's.
+        below_policy_floor = detection.primary_confidence < self._doc.low_confidence_floor
 
         checks: tuple[tuple[object | None, bool], ...] = (
             (
@@ -153,6 +156,10 @@ class PolicyEngine:
             (
                 condition.confidence_at_or_above_threshold,
                 condition.confidence_at_or_above_threshold == above_threshold,
+            ),
+            (
+                condition.confidence_below_policy_floor,
+                condition.confidence_below_policy_floor == below_policy_floor,
             ),
             (
                 condition.confidence_at_least,
