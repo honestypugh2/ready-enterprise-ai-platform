@@ -20,10 +20,11 @@ import re
 import time
 from collections import Counter
 from collections.abc import Iterable
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any
 
-from contracts.common import Classification
+from contracts.common import Classification, utcnow
 from contracts.retrieval import (
     RetrievalQuery,
     RetrievalResult,
@@ -55,6 +56,21 @@ def _lexical_embedding(text: str) -> list[float]:
 
 def _cosine(left: list[float], right: list[float]) -> float:
     return sum(a * b for a, b in zip(left, right, strict=True))
+
+
+def _resolve_updated_at(entry: dict[str, Any]) -> datetime:
+    """Prefer a declared age over a fixed date.
+
+    A corpus dated with absolute timestamps ages in real time, so a passage
+    silently crosses its freshness SLO between one demo and the next and the
+    disposition changes with it. `age_days` keeps a fixture's *relative* age
+    constant, which is what "the same result on every machine" actually
+    requires.
+    """
+    age_days = entry.get("age_days")
+    if age_days is not None:
+        return utcnow() - timedelta(days=int(age_days))
+    return datetime.fromisoformat(entry["updated_at"])
 
 
 class LocalKnowledgeRetriever:
@@ -98,7 +114,7 @@ class LocalKnowledgeRetriever:
                         passage=sanitised.text,
                         source_uri=entry["source_uri"],
                         version=entry["version"],
-                        updated_at=datetime.fromisoformat(entry["updated_at"]),
+                        updated_at=_resolve_updated_at(entry),
                         classification=Classification(entry.get("classification", "internal")),
                         access_groups=frozenset(entry["access_groups"]),
                         authority=entry.get("authority", "secondary"),

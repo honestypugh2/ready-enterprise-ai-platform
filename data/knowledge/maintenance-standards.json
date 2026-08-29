@@ -10,72 +10,87 @@
       "source_title": "MS-101 Structural Crack Disposition Standard",
       "source_uri": "https://synthetic.local/standards/MS-101",
       "version": "4.2",
-      "updated_at": "2026-07-14T09:00:00+00:00",
       "classification": "internal",
       "authority": "authoritative",
-      "access_groups": ["grp-manufacturing-all", "grp-maintenance-standards"],
+      "access_groups": [
+        "grp-manufacturing-all",
+        "grp-maintenance-standards"
+      ],
       "freshness_slo_days": 30,
-      "passage": "A structural crack detected in a load-bearing region requires immediate line stop. The affected batch must be quarantined pending metallurgical review. Disposition authority for a line stop rests with the plant manager and requires a second approving signature under dual control. Under no circumstances may a unit with a confirmed structural crack be released to downstream assembly."
+      "passage": "A structural crack detected in a load-bearing region requires immediate line stop. The affected batch must be quarantined pending metallurgical review. Disposition authority for a line stop rests with the plant manager and requires a second approving signature under dual control. Under no circumstances may a unit with a confirmed structural crack be released to downstream assembly.",
+      "age_days": 20
     },
     {
       "source_id": "MS-118",
       "source_title": "MS-118 Seal Integrity and Weld Porosity Tolerances",
       "source_uri": "https://synthetic.local/standards/MS-118",
       "version": "2.9",
-      "updated_at": "2026-08-02T11:30:00+00:00",
       "classification": "internal",
       "authority": "authoritative",
-      "access_groups": ["grp-manufacturing-all", "grp-maintenance-standards"],
+      "access_groups": [
+        "grp-manufacturing-all",
+        "grp-maintenance-standards"
+      ],
       "freshness_slo_days": 30,
-      "passage": "Seal gap and weld porosity are classified as major defects because both permit ingress. A confirmed occurrence requires a maintenance work order against the originating station within one shift, and quarantine of the affected batch. The maintenance lead is the approving role. Three or more occurrences within a single batch indicate a process fault rather than a unit fault and escalate to a line stop."
+      "passage": "Seal gap and weld porosity are classified as major defects because both permit ingress. A confirmed occurrence requires a maintenance work order against the originating station within one shift, and quarantine of the affected batch. The maintenance lead is the approving role. Three or more occurrences within a single batch indicate a process fault rather than a unit fault and escalate to a line stop.",
+      "age_days": 12
     },
     {
       "source_id": "MS-140",
       "source_title": "MS-140 Cosmetic Finding Handling",
       "source_uri": "https://synthetic.local/standards/MS-140",
       "version": "1.7",
-      "updated_at": "2026-06-20T08:15:00+00:00",
       "classification": "internal",
       "authority": "authoritative",
-      "access_groups": ["grp-manufacturing-all"],
+      "access_groups": [
+        "grp-manufacturing-all"
+      ],
       "freshness_slo_days": 90,
-      "passage": "Surface scratches and discoloration are cosmetic findings. They are recorded against the unit history and reviewed in the weekly quality meeting. They do not generate a work order and do not require supervisor approval, because approval on low-impact findings degrades attention to the findings that matter."
+      "passage": "Surface scratches and discoloration are cosmetic findings. They are recorded against the unit history and reviewed in the weekly quality meeting. They do not generate a work order and do not require supervisor approval, because approval on low-impact findings degrades attention to the findings that matter.",
+      "age_days": 40
     },
     {
       "source_id": "SOP-220",
       "source_title": "SOP-220 Station Realignment Procedure",
       "source_uri": "https://synthetic.local/sops/SOP-220",
       "version": "3.1",
-      "updated_at": "2026-07-30T14:45:00+00:00",
       "classification": "internal",
       "authority": "secondary",
-      "access_groups": ["grp-manufacturing-all", "grp-line-demo-l1"],
+      "access_groups": [
+        "grp-manufacturing-all",
+        "grp-line-demo-l1"
+      ],
       "freshness_slo_days": 60,
-      "passage": "Component misalignment outside the positional tolerance envelope is corrected by a station realignment work order. The quality supervisor approves the work order. Realignment requires the station to be taken out of service for approximately one cycle; production scheduling must be notified before the work order is released."
+      "passage": "Component misalignment outside the positional tolerance envelope is corrected by a station realignment work order. The quality supervisor approves the work order. Realignment requires the station to be taken out of service for approximately one cycle; production scheduling must be notified before the work order is released.",
+      "age_days": 25
     },
     {
       "source_id": "SOP-311",
       "source_title": "SOP-311 Quarantine and Batch Hold",
       "source_uri": "https://synthetic.local/sops/SOP-311",
       "version": "2.0",
-      "updated_at": "2026-05-11T10:00:00+00:00",
       "classification": "confidential",
       "authority": "secondary",
-      "access_groups": ["grp-maintenance-standards"],
+      "access_groups": [
+        "grp-maintenance-standards"
+      ],
       "freshness_slo_days": 60,
-      "passage": "A quarantine hold moves the batch to the controlled hold area and blocks downstream consumption in the ERP. The hold record must reference the originating prediction identifier and the approving principal. Releasing a hold is a separate approval and is never performed by the same principal who placed it."
+      "passage": "A quarantine hold moves the batch to the controlled hold area and blocks downstream consumption in the ERP. The hold record must reference the originating prediction identifier and the approving principal. Releasing a hold is a separate approval and is never performed by the same principal who placed it.",
+      "age_days": 110
     },
     {
       "source_id": "REF-905",
       "source_title": "REF-905 Legacy Threshold Guidance (superseded)",
       "source_uri": "https://synthetic.local/reference/REF-905",
       "version": "0.9",
-      "updated_at": "2025-02-03T09:00:00+00:00",
       "classification": "internal",
       "authority": "reference",
-      "access_groups": ["grp-manufacturing-all"],
+      "access_groups": [
+        "grp-manufacturing-all"
+      ],
       "freshness_slo_days": 30,
-      "passage": "Legacy guidance previously permitted seal gap findings to be dispositioned as cosmetic when confidence fell below 0.8. This guidance is superseded by MS-118. It is retained deliberately as a stale, conflicting document so that freshness handling and source-authority precedence are demonstrable rather than asserted."
+      "passage": "Legacy guidance previously permitted seal gap findings to be dispositioned as cosmetic when confidence fell below 0.8. This guidance is superseded by MS-118. It is retained deliberately as a stale, conflicting document so that freshness handling and source-authority precedence are demonstrable rather than asserted.",
+      "age_days": 572
     }
   ]
 }

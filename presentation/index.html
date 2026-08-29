@@ -82,8 +82,9 @@
   allowed                    <span class="b">True</span>
   severity                   <span class="b">critical</span>
   disposition                <span class="c">stop_line</span>
-  matched rules              <span class="b">R030-structural-crack</span>, G001-no-write-without-approval
-  policy version             <span class="b">2.5.0</span> · <span class="u">sha256:e248eed66e0…</span>
+  matched rules              <span class="b">R030-structural-crack</span>, G001-no-write-without-approval,
+                        G003-stale-evidence
+  policy version             <span class="b">2.6.0</span> · <span class="u">sha256:a8fe44ad518…</span>
   approval required          <span class="c">True (plant_manager) · dual control</span>
 
 <span class="d">9-10  Act  ·  sole scoped writer</span>
@@ -93,7 +94,7 @@
 </pre>
                     </div>
                     <p class="label-note">
-                        Real output, captured 2026-08-28 in <code>local_mock</code> mode. Every
+                        Real output, captured 2026-08-29 in <code>local_mock</code> mode. Every
                         plane is mocked; the governance around them is not. Nothing in this
                         repository has been deployed to Azure and no accuracy, latency or cost
                         claim is made anywhere in it.
@@ -444,7 +445,7 @@
                              G001-no-write-without-approval
                              G003-stale-evidence
   reason codes               CRITICAL_SAFETY_DEFECT, STALE_EVIDENCE_REQUIRES_APPROVAL
-  policy version             <span class="b">2.5.0</span> · <span class="u">sha256:e248eed66e0…</span>
+  policy version             <span class="b">2.6.0</span> · <span class="u">sha256:a8fe44ad518…</span>
   permitted actions          quarantine_batch, create_incident, notify_supervisor
 </pre>
                     </div>
@@ -744,7 +745,7 @@
                     </p>
                 </div>
                 <div class="foot">
-                    <span class="cue">reap ready · captured 2026-08-28</span>
+                    <span class="cue">reap ready · captured 2026-08-29</span>
                     <span>21:30</span>
                 </div>
                 <aside class="notes">
