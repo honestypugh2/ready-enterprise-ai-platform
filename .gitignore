@@ -52,6 +52,8 @@ apps/web/.vite/
 apps/web/coverage/
 apps/web/playwright-report/
 apps/web/test-results/
+# Conference source material is maintained and validated locally, not pushed.
+presentation/
 *.tsbuildinfo
 npm-debug.log*
 yarn-error.log*
@@ -123,3 +125,4 @@ docs/demo/recordings/*
 # Session decks live with the presentation, not in the reference implementation.
 *.pdf
 !docs/**/*.pdf
+*.pptx

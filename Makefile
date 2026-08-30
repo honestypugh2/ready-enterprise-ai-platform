@@ -17,7 +17,6 @@ PY := $(UV) run
 API_HOST ?= 127.0.0.1
 API_PORT ?= 8000
 WEB_DIR := apps/web
-DECK_DIR := presentation
 SCENARIO ?= major-defect
 REPORT ?= reports/evaluation-report.json
 
@@ -43,18 +42,6 @@ install-all: ## Install every extra (azure, aml, onnx, dev) to prove they co-res
 lock: ## Refresh uv.lock against the current constraints
 	$(UV) lock --upgrade
 
-.PHONY: clean
-clean: ## Remove caches, build output and local state
-	rm -rf .ruff_cache .mypy_cache .pytest_cache htmlcov .coverage coverage.xml \
-	       dist build reports .reap-state
-	find . -type d -name __pycache__ -not -path "./.venv/*" -exec rm -rf {} + 2>/dev/null || true
-
-# --- quality ---------------------------------------------------------------
-
-.PHONY: format
-format: ## Apply formatting and safe lint fixes
-	$(PY) ruff format packages apps tests scripts
-	$(PY) ruff check --fix packages apps tests scripts
 
 .PHONY: lint
 lint: ## Lint without modifying files
@@ -114,6 +101,14 @@ demo-all: ## Run every scenario, to prove policy behaviour across the matrix
 	  $(PY) reap demo run --scenario $$s > /dev/null && echo "  ok" || echo "  FAILED"; \
 	done
 
+.PHONY: azure-demo-index
+azure-demo-index: ## Upload synthetic fixtures to Azure AI Search (requires azure_dev)
+	$(PY) reap azure index
+
+.PHONY: azure-demo-preflight
+azure-demo-preflight: ## Verify live Azure demo prerequisites (requires azure_dev)
+	$(PY) reap azure preflight
+
 # --- run -------------------------------------------------------------------
 
 .PHONY: dev
@@ -139,6 +134,10 @@ deck: ## Present the session deck on http://localhost:5180 (press S for speaker 
 .PHONY: deck-build
 deck-build: ## Build the deck to presentation/dist, presentable from disk with no server
 	cd $(DECK_DIR) && npm install && npm run build
+
+.PHONY: deck-check
+deck-check: ## Build the deck and prove every slide fits conference and laptop viewports
+	cd $(DECK_DIR) && npm ci && npm run build && npm run test:layout
 
 .PHONY: up
 up: ## Start API + worker + web with docker compose
