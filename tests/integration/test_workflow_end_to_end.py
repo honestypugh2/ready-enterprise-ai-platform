@@ -31,6 +31,8 @@ SCENARIO_IDS = [
     "repeat-major",
     "critical-defect",
     "restricted-classification",
+    "unsafe-replenishment",
+    "governed-replenishment",
 ]
 
 
@@ -122,7 +124,10 @@ class TestFixturesMatchPolicy:
         assert outcome.policy is not None
         assert scenario.expects["policy_rule"] in outcome.policy.matched_rules
 
-    @pytest.mark.parametrize("scenario_id", ["major-defect", "repeat-major", "critical-defect"])
+    @pytest.mark.parametrize(
+        "scenario_id",
+        ["major-defect", "repeat-major", "critical-defect", "governed-replenishment"],
+    )
     async def test_gated_scenarios_name_the_role_they_advertise(
         self,
         scenario_id: str,

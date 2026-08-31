@@ -1,13 +1,60 @@
 # Demo runbook
 
+## Protected live Azure sequence - slides S16-S18
+
+The 16:00-20:00 window runs from the presenter workstation and uses real Azure
+AI Search, Microsoft Foundry, and Application Insights resources in
+`rg-reap-dev`.
+It does not require Docker, Container Apps, the API, worker, web application,
+AML or APIM. The detector and approver remain labelled synthetic fixtures, and
+the scoped writer remains a dry run. No ERP write is claimed.
+
+The validated development infrastructure is deployed from the full repository
+template:
+
+```bash
+AZURE_LOCATION=eastus scripts/deploy.sh --what-if --env dev
+AZURE_LOCATION=eastus scripts/deploy.sh --apply --env dev
+```
+
+Install the optional clients, set `REAP_MODE=azure_dev`, and configure Search
+plus the repo-owned reasoning and Application Insights resources. The Foundry
+adapter requires the account's Azure OpenAI endpoint, not its general
+Cognitive Services endpoint. Then populate the index and run preflight:
+
+```bash
+source .venv/bin/activate
+make install-all
+make azure-demo-index
+make azure-demo-preflight
+```
+
+Preflight observes an Azure credential and the configured Search index. It
+checks Foundry and telemetry configuration, but only the scenario itself can
+prove a model completion and exported trace:
+
+```bash
+reap demo replenish --persist
+```
+
+Narrate seven beats: retrieve, cite, reject the unsafe SKU deterministically,
+explain the safe candidate with Foundry, capture a separate human approval,
+hold the scoped writer in dry run, and show the correlated trace plus
+audit/evaluation evidence.
+
+If preflight or the live scenario fails, say **"Azure fallback"** before using
+the captured local run. Never present fallback output as a live Azure result.
+
+## Offline rehearsal and fallback
+
 Everything below runs offline. No Azure subscription, no credential, no network
 after `make install`. That is deliberate — a demo that depends on a conference
-network is a demo that fails on stage.
+network needs a rehearsed fallback.
 
 ## Setup, once
 
 ```bash
-make install
+make install-all
 source .venv/bin/activate
 make check          # ~10s — proves the machine is ready
 ```
@@ -17,77 +64,33 @@ If `make check` passes, the demo will run.
 ## Rehearse
 
 ```bash
-make demo-all       # every scenario, ~20s
+reap demo replenish --persist
 ```
 
-Run this the morning of. It catches a broken fixture before an audience does.
+This is the only conference demo. It runs the unsafe rejection followed by the
+approved dry-run order using labelled synthetic inventory, supplier, approver,
+and D365 data.
 
-## The seven-minute sequence
+## The replenishment sequence
 
-### 1 · Clean unit — ~2 min
+### 1 · Unsafe candidate
 
 ```bash
-reap demo run --scenario clean-unit
+reap demo run --scenario unsafe-replenishment
 ```
 
-Nothing is wrong, and the platform still records evidence.
+Leave the deterministic rejection on screen. The model does not get a vote on
+an authoritative constraint.
 
-> *"The transaction nobody can reconstruct later is the one where nothing
-> happened. This one gets the same receipt as every other."*
-
-Point at the audit chain and `[PASS] chain verifies`.
-
-### 2 · Low confidence — ~1 min
+### 2 · Governed candidate
 
 ```bash
-reap demo run --scenario low-confidence
+reap demo run --scenario governed-replenishment --persist
 ```
 
-The detector reported 41% against a 62% threshold.
-
-> *"The model did not clear its own threshold. Policy re-inspects rather than
-> raising a work order on a signal the model does not stand behind. Rule
-> R020 — not a prompt, a rule id."*
-
-### 3 · The hero path — ~3 min
-
-```bash
-reap demo run --scenario major-defect
-```
-
-The whole argument, in one transaction:
-
-- **Step 1** — a specialized model, 8ms, no frontier call
-- **Step 3** — evidence with citations and an entitlement trim count
-- **Step 4** — the explanation, which cites and does not decide
-- **Step 5** — the verdict, with a rule id, a policy version and a file hash
-- **Step 6** — the approval, held, with evidence as data
-- **Step 7** — the write, dry run
-- **Step 8** — the chain, verified
-
-> *"The model never writes, and the writer never reasons. Everything between
-> those two facts is evidence, policy and supervision."*
-
-### 4 · Dual control — ~1 min
-
-```bash
-reap demo run --scenario critical-defect
-```
-
-> *"Two distinct principals. One person clicking twice does not satisfy it, and
-> there is a test that asserts exactly that."*
-
-### 5 · The gate — ~1 min
-
-```bash
-make eval
-reap ready
-```
-
-> *"This is the check that would block the release. And this is the same
-> repository failing its own readiness gate — because it has no
-> authentication and no durable approval store. A framework whose author's
-> code passes trivially would be worth nothing."*
+Show evidence, explanation, the inventory-manager approval, the dry-run D365
+receipt, and the verified audit chain. Every displayed business value is a
+synthetic fixture.
 
 Ending on the failing scorecard is the strongest available move. It converts
 the whole session from a product pitch into a working assessment.
@@ -122,8 +125,9 @@ Pre-recorded fallbacks belong in `docs/demo/recordings/`.
 ## Questions you will be asked
 
 **"Is this production-ready?"**
-No, and `IMPLEMENTATION_STATUS.md` lists exactly why. No authentication, no
-durable approval store, no deployed environment, no real connector.
+No, and `IMPLEMENTATION_STATUS.md` lists exactly why. Development infrastructure
+is deployed, but there is no application authentication, durable approval
+store, hosted application, or real connector.
 
 **"How accurate is the model?"**
 There is no model. The detector is a hash-seeded fixture and carries no accuracy
@@ -139,7 +143,11 @@ No. It is an original field framework created for this session.
 
 **"Why not just use an agent?"**
 For this workload the sequence is known, so discovering it per request costs a
-model call per decision and buys nothing. ADR-0002 states when the answer flips.
+model call per decision and buys nothing. Add agentic orchestration only when
+runtime variation justifies its coordination and failure surface.
 
 **"Has any of this been deployed?"**
-No. Fifteen Bicep templates compile; not one resource exists.
+Yes. The development stack is provisioned in `rg-reap-dev`. The live demo has
+observed Search retrieval, a Foundry completion, and an Application Insights
+trace. AML scoring, Service Bus messaging, APIM policy execution, hosted
+applications, and real D365 writes remain unproven.

@@ -22,6 +22,7 @@ from detector.base import BaseDetector, DetectorUnavailableError
 # Frames whose hash is registered here always produce the same scenario, so the
 # demo runbook can promise a specific outcome for a specific fixture.
 _PINNED_SCENARIOS: dict[str, tuple[str, float]] = {}
+_PINNED_OPERATIONAL_SIGNALS = frozenset({"unsafe_replenishment", "governed_replenishment"})
 
 
 class DeterministicMockDetector(BaseDetector):
@@ -46,8 +47,8 @@ class DeterministicMockDetector(BaseDetector):
     @staticmethod
     def pin_scenario(frame_hash: str, *, label: str, confidence: float) -> None:
         """Bind a fixture hash to a known outcome for the demo runbook."""
-        if label not in DEFECT_LABELS:
-            raise ValueError(f"unknown defect label: {label}")
+        if label not in DEFECT_LABELS and label not in _PINNED_OPERATIONAL_SIGNALS:
+            raise ValueError(f"unknown demo signal label: {label}")
         _PINNED_SCENARIOS[frame_hash] = (label, confidence)
 
     @staticmethod

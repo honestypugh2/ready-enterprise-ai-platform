@@ -30,7 +30,7 @@ TRACER_NAME = "ready_enterprise_ai_platform"
 _configured = False
 
 
-def configure_observability(settings: PlatformSettings) -> None:
+def configure_observability(settings: PlatformSettings, *, credential: Any | None = None) -> None:
     """Idempotent tracer setup. Safe to call from every entry point."""
     global _configured
     if _configured:
@@ -58,7 +58,12 @@ def configure_observability(settings: PlatformSettings) -> None:
             )
 
             provider.add_span_processor(
-                BatchSpanProcessor(AzureMonitorTraceExporter(connection_string=connection_string))
+                BatchSpanProcessor(
+                    AzureMonitorTraceExporter(
+                        connection_string=connection_string,
+                        credential=credential,
+                    )
+                )
             )
         except ImportError:  # pragma: no cover - depends on optional extra
             logger.warning(

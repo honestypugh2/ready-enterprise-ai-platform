@@ -121,8 +121,15 @@ pip-audit-report.json
 docs/demo/recordings/*
 !docs/demo/recordings/.gitkeep
 
-# --- Source material -------------------------------------------------------
-# Session decks live with the presentation, not in the reference implementation.
+# --- Local-only source material -------------------------------------------
+# Presentation mapping, field positioning, and decision notes are maintained
+# locally and are not published with the reference implementation.
 *.pdf
 !docs/**/*.pdf
 *.pptx
+
+docs/presentation-mapping/
+docs/field-positioning/
+docs/adr/
+
+*.log

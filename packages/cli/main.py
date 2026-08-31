@@ -17,12 +17,14 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from cli.azure_demo import index_demo_corpus, run_preflight
 from cli.render import bullet, field, heading, style, table, verdict
 from cli.scenarios import DemoScenario, get_scenario, load_scenarios
 from contracts.approval import ApprovalDecision, ApprovalState
 from contracts.audit import AuditReceipt
 from cost_attribution import RateCard
 from platform_config import ExecutionMode, PlatformSettings, get_settings
+from retrieval import AzureSearchRetriever
 from security.identity import IdentityContext
 from workflows import WorkflowOutcome, build_platform
 
@@ -290,8 +292,11 @@ async def _run_demo(args: argparse.Namespace) -> int:
     _print_banner(settings)
     print(heading(f"scenario · {scenario.name}"))
     print(style(f"  {scenario.narrative}", "dim"))
-    print(field("line / station", f"{scenario.line_id} / {scenario.station_id}"))
-    print(field("sku / batch", f"{scenario.product_sku} / {scenario.batch_id}"))
+    is_replenishment = scenario.id.endswith("replenishment")
+    location_label = "warehouse / bin" if is_replenishment else "line / station"
+    context_label = "sku / supplier:quantity" if is_replenishment else "sku / batch"
+    print(field(location_label, f"{scenario.line_id} / {scenario.station_id}"))
+    print(field(context_label, f"{scenario.product_sku} / {scenario.batch_id}"))
     print(field("classification", scenario.classification.value))
 
     operator = IdentityContext.local_demo_operator()
@@ -300,6 +305,8 @@ async def _run_demo(args: argparse.Namespace) -> int:
         identity=operator,
         batch_defect_count=scenario.batch_defect_count,
     )
+    if isinstance(assembly.retriever, AzureSearchRetriever):
+        await assembly.retriever.close()
 
     _print_detection(outcome)
     _print_route(outcome)
@@ -355,13 +362,16 @@ async def _run_demo(args: argparse.Namespace) -> int:
 
     print(heading("outcome"))
     print(field("status", outcome.status, colour="bold"))
-    print(
-        style(
+    closing = (
+        "\n  The signal proposed; policy decided; a separate human authorized; "
+        "the scoped writer remained in dry-run.\n"
+        if is_replenishment
+        else (
             "\n  The specialized model found the defect.\n"
-            "  The Enterprise AI platform proved what happened and governed what happened next.\n",
-            "cyan",
+            "  The Enterprise AI platform proved what happened and governed what happened next.\n"
         )
     )
+    print(style(closing, "cyan"))
 
     if args.json_out:
         payload = json.dumps(_outcome_as_dict(outcome), indent=2, default=str)
@@ -420,6 +430,22 @@ def _list_scenarios(_: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+async def _run_replenishment_demo(args: argparse.Namespace) -> int:
+    print(heading("governed warehouse replenishment · synthetic fixture"))
+    print(
+        style(
+            "  One story: reject an unsafe SKU, then approve and dry-run the exact safe order.",
+            "dim",
+        )
+    )
+    for scenario_id in ("unsafe-replenishment", "governed-replenishment"):
+        scenario_args = argparse.Namespace(**vars(args), scenario=scenario_id)
+        result = await _run_demo(scenario_args)
+        if result != EXIT_OK:
+            return result
+    return EXIT_OK
+
+
 # ---------------------------------------------------------------------------
 # eval / ready / audit / doctor
 # ---------------------------------------------------------------------------
@@ -475,6 +501,25 @@ async def _doctor(_: argparse.Namespace) -> int:
     return EXIT_OK if all(health.values()) else EXIT_GATE_FAILED
 
 
+async def _azure_preflight(_: argparse.Namespace) -> int:
+    checks = await run_preflight(get_settings())
+    print(heading("live Azure demo preflight"))
+    for check in checks:
+        print(verdict(check.name, ok=check.ok), style(f"  {check.evidence}", "dim"))
+    return EXIT_OK if all(check.ok for check in checks) else EXIT_GATE_FAILED
+
+
+def _azure_index(args: argparse.Namespace) -> int:
+    count, index_name = index_demo_corpus(
+        get_settings(), include_adversarial=args.include_adversarial
+    )
+    print(heading("Azure AI Search demo corpus"))
+    print(field("index", index_name))
+    print(field("uploaded", f"{count} synthetic fixture passages"))
+    print(field("adversarial corpus", "included" if args.include_adversarial else "excluded"))
+    return EXIT_OK
+
+
 # ---------------------------------------------------------------------------
 # parser
 # ---------------------------------------------------------------------------
@@ -509,6 +554,19 @@ def build_parser() -> argparse.ArgumentParser:
     listing = demo_sub.add_parser("list", help="list available scenarios")
     listing.set_defaults(handler=_list_scenarios, is_async=False)
 
+    replenish = demo_sub.add_parser(
+        "replenish", help="run the governed warehouse replenishment story"
+    )
+    replenish.add_argument("--persist", action="store_true", help="persist audit to disk")
+    replenish.add_argument("--rate-card", help="optional customer-supplied rate card")
+    replenish.set_defaults(
+        handler=_run_replenishment_demo,
+        is_async=True,
+        reject=False,
+        leave_pending=False,
+        json_out=None,
+    )
+
     evaluate = subparsers.add_parser("eval", help="run the evaluation release gate")
     evaluate.add_argument("--dataset", help="path to an evaluation dataset")
     evaluate.add_argument("--report", help="write the evaluation report JSON here")
@@ -528,6 +586,18 @@ def build_parser() -> argparse.ArgumentParser:
 
     doctor = subparsers.add_parser("doctor", help="check configuration and plane health")
     doctor.set_defaults(handler=_doctor, is_async=True)
+
+    azure = subparsers.add_parser("azure", help="prepare and verify the live Azure demo")
+    azure_sub = azure.add_subparsers(dest="azure_command", required=True)
+    preflight = azure_sub.add_parser("preflight", help="observe live-demo prerequisites")
+    preflight.set_defaults(handler=_azure_preflight, is_async=True)
+    index = azure_sub.add_parser("index", help="upload the synthetic Search demonstration corpus")
+    index.add_argument(
+        "--include-adversarial",
+        action="store_true",
+        help="also upload the labelled security-test corpus",
+    )
+    index.set_defaults(handler=_azure_index, is_async=False)
 
     return parser
 

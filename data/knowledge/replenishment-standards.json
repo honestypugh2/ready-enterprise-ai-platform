@@ -1,0 +1,37 @@
+{
+    "corpus_id": "replenishment-standards",
+    "owner": "Supply Chain Operations (synthetic fixture)",
+    "authority_statement": "Authoritative only for the synthetic warehouse replenishment demonstration.",
+    "refresh_slo_days": 30,
+    "notice": "All inventory, supplier, SKU and order data is synthetic. It describes no real organization or system of record.",
+    "passages": [
+        {
+            "source_id": "INV-201",
+            "source_title": "Synthetic Inventory Replenishment Standard",
+            "source_uri": "https://synthetic.local/inventory/INV-201",
+            "version": "1.0",
+            "classification": "internal",
+            "authority": "authoritative",
+            "access_groups": [
+                "grp-manufacturing-all"
+            ],
+            "freshness_slo_days": 30,
+            "passage": "A governed replenishment proposal may be created only for an approved SKU and supplier combination. The inventory manager must approve the exact SKU, location, supplier, and quantity before a replenishment order reaches Dynamics 365. Blocked or discontinued SKUs must be rejected regardless of a model recommendation.",
+            "age_days": 1
+        },
+        {
+            "source_id": "INV-204",
+            "source_title": "Synthetic SKU and Supplier Eligibility Record",
+            "source_uri": "https://synthetic.local/inventory/INV-204",
+            "version": "1.0",
+            "classification": "internal",
+            "authority": "authoritative",
+            "access_groups": [
+                "grp-manufacturing-all"
+            ],
+            "freshness_slo_days": 7,
+            "passage": "SKU-BEARING-042 at warehouse SEA-01 is approved for replenishment from supplier SUP-1007 in a fixture quantity of 120 units. SKU-BEARING-041 is discontinued and unsafe to reorder. These values are synthetic demonstration fixtures, not live inventory facts.",
+            "age_days": 1
+        }
+    ]
+}

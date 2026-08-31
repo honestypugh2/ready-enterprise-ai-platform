@@ -110,6 +110,5 @@ once added below a broader rule and could never fire. Bump the policy version.
 | Question | File |
 |---|---|
 | What is actually real? | [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) |
-| Why was this decided? | [docs/adr/](docs/adr/README.md) |
 | What is the shape? | [docs/architecture/overview.md](docs/architecture/overview.md) |
 | What is still open? | [docs/security/threat-model.md](docs/security/threat-model.md) |

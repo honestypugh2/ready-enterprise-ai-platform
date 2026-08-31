@@ -109,6 +109,14 @@ azure-demo-index: ## Upload synthetic fixtures to Azure AI Search (requires azur
 azure-demo-preflight: ## Verify live Azure demo prerequisites (requires azure_dev)
 	$(PY) reap azure preflight
 
+.PHONY: azure-demo-infra-preview
+azure-demo-infra-preview: ## Preview the Search-only conference demo infrastructure
+	az deployment group what-if --resource-group $${DEMO_RESOURCE_GROUP:-rg-replen-demo} --name reap-demo-search --template-file infra/demo/main.bicep --parameters infra/demo/dev.bicepparam
+
+.PHONY: azure-demo-infra-deploy
+azure-demo-infra-deploy: ## Deploy the Search-only conference demo infrastructure
+	az deployment group create --resource-group $${DEMO_RESOURCE_GROUP:-rg-replen-demo} --name reap-demo-search --template-file infra/demo/main.bicep --parameters infra/demo/dev.bicepparam
+
 # --- run -------------------------------------------------------------------
 
 .PHONY: dev

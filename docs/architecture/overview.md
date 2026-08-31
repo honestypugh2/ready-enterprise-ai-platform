@@ -9,8 +9,9 @@ claim is enforced.
 
 ## The transaction
 
-One inspection, end to end. Twelve explicit steps, not an agent loop — see
-[ADR-0002](../adr/0002-explicit-workflow-rather-than-agent-first.md).
+One inspection, end to end. Twelve explicit steps, not an agent loop. The
+sequence is known in advance, so runtime discovery would add cost and failure
+surface without adding capability.
 
 ```mermaid
 flowchart TD
@@ -131,7 +132,8 @@ Nothing crosses from *Untrusted* directly to *Systems of record*.
 `policy_decision_id` and `idempotency_key` — so an unbound write **cannot be
 expressed in the type system**.
 
-See [ADR-0011](../adr/0011-a-single-scoped-writer.md).
+The sole-writer contract test parses the import graph and fails if another
+component gains a connector path.
 
 ## Execution modes
 
@@ -164,5 +166,4 @@ See [operations/execution-modes.md](../operations/execution-modes.md).
 - [Evaluation framework](../evaluations/framework.md)
 - [Execution modes](../operations/execution-modes.md)
 - [Production readiness](../operations/production-readiness.md)
-- [Architecture decision records](../adr/README.md)
 - [Reuse and attribution](reuse-and-attribution.md)

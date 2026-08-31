@@ -5,9 +5,8 @@ liable to change under the repository. One page, because the alternative is a
 reader discovering each constraint separately at the moment it breaks.
 
 **Rule:** a preview dependency may be used, but it must sit behind an adapter
-that a stable implementation also satisfies — see
-[ADR-0017](../adr/0017-preview-features-are-isolated-behind-adapters.md). A
-preview change should break one adapter, not the architecture.
+that a stable implementation also satisfies. A preview change should break one
+adapter, not the architecture.
 
 **Last reviewed:** 2026-08-29
 
@@ -63,7 +62,7 @@ time.
 | Extra | Contains | Needed for |
 |---|---|---|
 | `azure` | `azure-identity`, `azure-keyvault-secrets`, `azure-search-documents`, `azure-servicebus`, `azure-monitor-opentelemetry`, `openai` | Any non-local execution mode |
-| `aml` | `azure-ai-ml` | Authoring against Azure ML. **Not** used in the request path — the detector adapter speaks the HTTPS scoring contract directly ([ADR-0005](../adr/0005-azure-ml-adapter-speaks-the-scoring-contract.md)) |
+| `aml` | `azure-ai-ml` | Authoring against Azure ML. **Not** used in the request path — the detector adapter speaks the HTTPS scoring contract directly |
 | `onnx` | `onnxruntime`, `numpy`, `pillow` | Locally executed ONNX detection |
 | `dev` | pytest, ruff, mypy, bandit, pip-audit, respx | Development only |
 

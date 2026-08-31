@@ -22,6 +22,7 @@ class Disposition(StrEnum):
     QUARANTINE = "quarantine"
     MAINTENANCE_WORK_ORDER = "maintenance_work_order"
     STOP_LINE = "stop_line"
+    REPLENISHMENT_ORDER = "replenishment_order"
 
 
 class PolicyObligation(PlatformModel):

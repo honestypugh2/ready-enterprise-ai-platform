@@ -19,7 +19,7 @@ param workspaceId string
 var isPremium = environment == 'prod'
 
 resource namespace 'Microsoft.ServiceBus/namespaces@2024-01-01' = {
-  name: '${namePrefix}-sb'
+  name: '${namePrefix}-servicebus'
   location: location
   tags: resourceTags
   sku: {

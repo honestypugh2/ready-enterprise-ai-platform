@@ -21,7 +21,7 @@ from contracts.reasoning import ReasoningRequest
 from security.sanitisation import wrap_untrusted
 
 PROMPT_ID = "manufacturing-defect-explanation"
-PROMPT_VERSION = "1.2.0"
+PROMPT_VERSION = "1.2.1"
 
 SYSTEM_PROMPT = """\
 You are an explanation component inside a governed manufacturing quality platform.
@@ -50,7 +50,16 @@ Respond only with JSON matching the supplied schema."""
 OUTPUT_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
-    "required": ["headline", "rationale", "citations", "self_reported_confidence", "refused"],
+    "required": [
+        "headline",
+        "rationale",
+        "citations",
+        "proposed_action",
+        "missing_information",
+        "self_reported_confidence",
+        "refused",
+        "refusal_reason",
+    ],
     "properties": {
         "headline": {"type": "string", "maxLength": 200},
         "rationale": {"type": "string", "maxLength": 4000},

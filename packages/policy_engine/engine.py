@@ -189,6 +189,7 @@ class PolicyEngine:
             Disposition.MAINTENANCE_WORK_ORDER,
             Disposition.QUARANTINE,
             Disposition.STOP_LINE,
+            Disposition.REPLENISHMENT_ORDER,
         }
         evidence_is_stale = bool(
             policy_input.evidence is not None and policy_input.evidence.stale_items()

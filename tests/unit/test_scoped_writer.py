@@ -12,7 +12,13 @@ from datetime import timedelta
 import pytest
 
 from approvals import ApprovalService
-from connectors import MockEnterpriseConnector, ScopedWriter, fingerprint_proposal, mock_erp
+from connectors import (
+    MockEnterpriseConnector,
+    ScopedWriter,
+    fingerprint_proposal,
+    mock_dynamics365,
+    mock_erp,
+)
 from contracts.action import ActionKind, ActionRequest, ActionStatus
 from contracts.approval import ApprovalDecision, ApprovalEvidence, ApprovalState
 from contracts.errors import (
@@ -25,6 +31,12 @@ from policy_engine import PolicyEngine, PolicyInput
 from tests.conftest import FIXED_NOW, make_detection
 
 PAYLOAD = {"product_sku": "SKU-88421", "defect_label": "seal_gap", "severity": "major"}
+
+
+def test_dynamics_365_declares_the_replenishment_action_used_by_the_demo() -> None:
+    connector = mock_dynamics365()
+
+    assert ActionKind.CREATE_REPLENISHMENT_ORDER in connector.supported_actions
 
 
 async def _approved_action(

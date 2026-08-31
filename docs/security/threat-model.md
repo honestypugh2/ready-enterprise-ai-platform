@@ -130,8 +130,7 @@ SHA-256 of the file, so a changed policy is *detectable after the fact*.
 **Status: UNMITIGATED for prevention.** There is no signing and no
 change-control workflow. **Whoever can write the policy file can change what
 the platform is allowed to do.** This is the most significant unmitigated risk
-in the design, and it is also stated in
-[ADR-0009](../adr/0009-business-rules-are-deterministic-and-outside-the-model.md).
+in the design.
 
 ## Repudiation
 

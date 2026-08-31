@@ -123,7 +123,7 @@ Azure mode is opt-in per plane, so you can connect retrieval to Azure AI Search 
 
 Honesty about status is a feature of this repository, not a caveat buried at the bottom. **[`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md)** records every capability on two axes: **what exists** (Implemented / Partial / Mocked / Adapter only / Absent) and **what has actually been proven** (⬤ Proven / ◑ Tested / ◔ Checked / ○ Written), plus the remaining gap and what it would mean in production.
 
-The two are separated because one column was hiding the difference between a plane covered by ninety-odd tests and a Bicep template that had only ever been parsed. **The ⬤ Proven column is currently empty** — nothing here has been executed against a live Azure dependency.
+The two are separated because one column was hiding the difference between a plane covered by automated tests and a Bicep template that had only ever been parsed. The current proof is deliberately narrow: Azure AI Search retrieval, a Foundry completion, and an Application Insights trace have been observed in `rg-reap-dev`; other provisioned services remain unproven.
 
 Three statements that apply everywhere:
 
@@ -141,12 +141,9 @@ Three statements that apply everywhere:
 | --- | --- |
 | [`docs/architecture/overview.md`](docs/architecture/overview.md) | The nine planes and why they are separated |
 | [`docs/demo/runbook.md`](docs/demo/runbook.md) | The five-minute demo, with a no-network fallback |
-| [`docs/presentation-mapping/README.md`](docs/presentation-mapping/README.md) | Every slide message → component → test → demo step |
 | [`docs/security/threat-model.md`](docs/security/threat-model.md) | Prompt injection, excessive agency, exfiltration, replay |
 | [`docs/evaluations/framework.md`](docs/evaluations/framework.md) | Datasets, graders, thresholds, release gates |
 | [`docs/operations/production-readiness.md`](docs/operations/production-readiness.md) | READY AI scorecard and the release gate |
-| [`docs/field-positioning/README.md`](docs/field-positioning/README.md) | AI Apps / Data / Infrastructure motions |
-| [`docs/adr/`](docs/adr/) | Why each structural decision was made |
 | [`docs/architecture/reuse-and-attribution.md`](docs/architecture/reuse-and-attribution.md) | Provenance of reused patterns |
 
 ---

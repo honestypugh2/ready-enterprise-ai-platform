@@ -78,8 +78,9 @@ REAP_REASONING_PROVIDER=foundry
 REAP_REASONING_ENDPOINT=https://<foundry>.services.ai.azure.com/
 ```
 
-No code change. That substitutability is the point of the plane structure —
-[ADR-0017](../adr/0017-preview-features-are-isolated-behind-adapters.md).
+No code change. That substitutability is the point of the plane structure:
+version-sensitive dependencies stay behind contracts that stable local
+implementations also satisfy.
 
 Verify with `reap doctor`, which reports the mode, each plane's health, the
 policy version and hash, the dry-run state and the kill switch.

@@ -4,15 +4,20 @@
 using '../../main.bicep'
 
 param environment = 'dev'
-param location = 'eastus2'
+param location = 'eastus'
 param workloadName = 'reap'
 param dataClassification = 'internal'
-param owner = 'CHANGE-ME-team-alias'
-param costCenter = 'CHANGE-ME'
-param publisherEmail = 'CHANGE-ME@example.com'
-param publisherName = 'CHANGE-ME Platform Team'
 
-// Developer-tier APIM takes ~45 minutes to provision. Enable it deliberately.
+// Synthetic fixture metadata for this repository and conference demo. These
+// values do not identify a real team, cost centre, or monitored mailbox.
+param owner = 'ai-platform'
+param costCenter = 'CC12345'
+param publisherEmail = 'ai-platform@microsoft.com'
+param publisherName = 'AI Platform Team'
+
+// APIM requires a real Entra app registration and an Entra-compatible logger
+// configuration before its policy can be applied. The service is not part of
+// the live replenishment path.
 param deployApiGateway = false
 param deployMachineLearning = true
 

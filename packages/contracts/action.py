@@ -25,6 +25,7 @@ class ActionKind(StrEnum):
     QUARANTINE_BATCH = "quarantine_batch"
     SCHEDULE_INSPECTION = "schedule_inspection"
     NOTIFY_SUPERVISOR = "notify_supervisor"
+    CREATE_REPLENISHMENT_ORDER = "create_replenishment_order"
 
 
 class ActionStatus(StrEnum):

@@ -13,12 +13,14 @@ and only the second one makes a demo safe to stand behind.
 from __future__ import annotations
 
 import json
+import re
 
 import pytest
 from tests.conftest import REPO_ROOT
 
 from contracts.common import utcnow
 from platform_config import PlatformSettings
+from reasoning.prompts import OUTPUT_SCHEMA
 from retrieval.local import LocalKnowledgeRetriever
 
 KNOWLEDGE_DIR = REPO_ROOT / "data" / "knowledge"
@@ -28,6 +30,10 @@ CORPUS_FILES = sorted(KNOWLEDGE_DIR.glob("*.json"))
 # guidance; REF-905 is an archived reference. Both exist so the freshness
 # guard has something real to catch.
 INTENTIONALLY_STALE = {"SOP-311", "REF-905"}
+
+
+def test_the_reasoning_schema_requires_every_property_for_azure_strict_mode() -> None:
+    assert set(OUTPUT_SCHEMA["required"]) == set(OUTPUT_SCHEMA["properties"])
 
 
 def passages() -> list[tuple[str, dict[str, object]]]:
@@ -169,14 +175,238 @@ class TestDeckClaimsMatchTheSystem:
         )
 
     def test_every_command_the_deck_demonstrates_exists(self, deck: str) -> None:
-        import re  # noqa: PLC0415
-
         from cli.scenarios import load_scenarios  # noqa: PLC0415
 
         available = set(load_scenarios())
         shown = set(re.findall(r"reap demo run --scenario ([a-z-]+)", deck))
-        assert shown, "the deck no longer demonstrates any scenario"
         assert shown <= available, f"the deck runs scenarios that do not exist: {shown - available}"
+        assert "reap demo replenish --persist" in deck
+
+    def test_the_delivery_contract_matches_the_v5_deck(self, deck: str) -> None:
+        main_slides = re.findall(r'<section[^>]+data-slide="S\d{2}"', deck)
+        appendix_slides = re.findall(r'<section[^>]+data-slide="A\d{2}"', deck)
+        assert len(main_slides) == 21
+        assert len(appendix_slides) == 20
+
+    def test_every_main_slide_has_its_talk_track_timing(self, deck: str) -> None:
+        expected = {
+            "S01": "0:00-0:45",
+            "S02": "0:45-1:45",
+            "S03": "1:45-3:00",
+            "S04": "3:00-4:15",
+            "S05": "4:15-5:15",
+            "S06": "5:15-6:15",
+            "S07": "6:15-7:30",
+            "S08": "7:30-8:30",
+            "S09": "8:30-9:30",
+            "S10": "9:30-10:45",
+            "S11": "10:45-12:00",
+            "S12": "12:00-13:00",
+            "S13": "13:00-14:00",
+            "S14": "14:00-15:00",
+            "S15": "15:00-16:00",
+            "S16": "16:00-16:30",
+            "S17": "16:30-17:00",
+            "S18": "17:00-20:00",
+            "S19": "20:00-21:00",
+            "S20": "21:00-23:00",
+            "S21": "23:00-25:00",
+        }
+        for slide, timing in expected.items():
+            assert f'data-slide="{slide}" data-timing="{timing}"' in deck
+
+    def test_the_v5_demo_window_requires_a_live_azure_path_and_an_honest_fallback(
+        self, deck: str
+    ) -> None:
+        slides = [
+            re.search(
+                rf'<section[^>]+data-slide="S{number}".*?</section>',
+                deck,
+                flags=re.DOTALL,
+            )
+            for number in (16, 17, 18)
+        ]
+        assert all(slide is not None for slide in slides)
+        content = " ".join(slide.group(0) for slide in slides if slide is not None)
+        for required in (
+            "Live Azure",
+            "Azure AI Search",
+            "Microsoft Foundry",
+            "Application Insights",
+            "deterministic",
+            "scoped writer",
+            "fallback",
+            "audit ID",
+        ):
+            assert required.lower() in content.lower()
+
+    def test_the_v5_slide_titles_are_in_order(self, deck: str) -> None:
+        titles = (
+            "Enterprise AI Architecture",
+            "The Reframe",
+            "The Anchor Diagram",
+            "Component Fit",
+            "Zoom: Action",
+            "Field Patterns",
+            "Zoom: Routing",
+            "The Pivot",
+            "Zoom: Retrieval",
+            "Retrieval Internals",
+            "Zoom: Evaluation",
+            "Zoom: Authority",
+            "Zoom: Security",
+            "Failure Modes",
+            "Zoom: Operations",
+            "Governed Replenishment",
+            "Demo Architecture",
+            "Demo Walkthrough",
+            "Reusable Assets",
+            "The Framework",
+            "Take This Back",
+        )
+        offsets = [deck.index(f'data-title="{title}"') for title in titles]
+        assert offsets == sorted(offsets)
+
+    def test_the_v5_architecture_slides_preserve_their_source_content(self, deck: str) -> None:
+        required_by_slide = {
+            "S02": (
+                "Capability is not the constraint. Accountability is.",
+                "what evidence permits a release",
+            ),
+            "S03": (
+                "Foundry Agent Service",
+                "If someone photographs one slide today, this is the one.",
+            ),
+            "S04": (
+                "CNN / YOLO on edge GPU",
+                "Task fit beats model size. The constraint that dominates chooses the component.",
+            ),
+            "S05": (
+                "SOP, tolerance table and defect history",
+                "The detector produces a signal. It cannot decide what the business does next.",
+            ),
+            "S06": (
+                "The model scores",
+                "Production AI combines predictive and generative.",
+            ),
+            "S07": (
+                "route_id · cost · trace",
+                "Re-benchmark before any route change.",
+            ),
+            "S09": (
+                "The agentic variant",
+                "Build a simple set and a complex set before changing topology.",
+            ),
+        }
+        normalized_deck = re.sub(r"\s+", " ", deck)
+        for slide_id, required_phrases in required_by_slide.items():
+            match = re.search(
+                rf'<section[^>]+data-slide="{slide_id}".*?</section>',
+                normalized_deck,
+            )
+            assert match is not None
+            for phrase in required_phrases:
+                assert phrase.lower() in match.group(0).lower(), (
+                    f"{slide_id} no longer preserves the v5 source phrase: {phrase}"
+                )
+
+    def test_every_slide_preserves_defining_v5_source_content(self, deck: str) -> None:
+        required_by_slide = {
+            "S01": ("principal engineers", "The model creates capability"),
+            "S02": ("which data is authoritative", "what evidence permits a release"),
+            "S03": ("Foundry Agent Service", "Fabric · OneLake"),
+            "S04": ("Component class", "release gate"),
+            "S05": ("tolerance table", "system of record"),
+            "S06": ("The model scores · rules decide", "Safety-critical logic"),
+            "S07": ("route_id · cost · trace", "Re-benchmark before any route change"),
+            "S08": ("Fluency without a source", "better prompt or a bigger model"),
+            "S09": ("query-time entitlement", "agentic variant"),
+            "S10": ("cached chunks", "Who is entitled to see it"),
+            "S11": ("adversarial regressions", "Version evaluation datasets like code"),
+            "S12": ("cannot read corpus", "Revocation means one role"),
+            "S13": ("retrieved or tool-returned content", "tested disaster recovery"),
+            "S14": ("Blast radius", "Tiered fallback + circuit breaker"),
+            "S15": ("human correction cost", "workload, route, and tenant"),
+            "S16": ("warehouse-replenishment-ai-demo", "field service"),
+            "S17": ("Nothing here is optional", "action correctness"),
+            "S18": ("Keep two frames ready", "business KPI"),
+            "S19": ("writer failover", "benchmark-driven routing"),
+            "S20": ("0 Absent", "High-impact actions demand stricter thresholds"),
+            "S21": ("task completion", "one job, identity, and permitted action"),
+            "A00": ("A15\u2013A19 · Moved", "None were deleted"),
+            "A01": ("foundry-copilot-hr-policy-knowledge", "Copilot Studio"),
+            "A02": ("foundry-workload-studio", "portfolio evidence"),
+            "A03": ("warehouse-replenishment-ai-demo", "writer failover"),
+            "A04": ("azureml-infra-foundation", "infrastructure as code"),
+            "A05": ("hybrid-router-workshop", "response carries its route decision"),
+            "A06": ("Sensitive-operation consent", "rejected-call review"),
+            "A07": ("independent release cadence", "One agent per organisational role"),
+            "A08": ("private DNS and endpoints", "tested DR path"),
+            "A09": ("record-to-answer path", "Does deletion reach indexes and traces"),
+            "A10": ("human correction time", "manual process"),
+            "A11": ("Fraud / recommender", "residency, offline operation"),
+            "A12": ("product owner", "Stop conditions"),
+            "A13": ("Salesforce Agentforce", "not a feature scorecard"),
+            "A14": ("Foundry IQ", "offline and online gates"),
+            "A15": ("governed · owned · authoritative · refreshed", "rung 7"),
+            "A16": ("Agent runtime", "Nothing in the chain is decorative"),
+            "A17": ("Calibrated error and reproducibility", "cloud reasoning stays outside"),
+            "A18": ("Shared by all three", "No motion succeeds alone"),
+            "A19": ("Privilege escalation", "cannot cross the production boundary"),
+        }
+        normalized_deck = re.sub(r"\s+", " ", deck)
+        for slide_id, required_phrases in required_by_slide.items():
+            match = re.search(
+                rf'<section[^>]+data-slide="{slide_id}".*?</section>',
+                normalized_deck,
+            )
+            assert match is not None, f"the v5 slide {slide_id} is missing"
+            for phrase in required_phrases:
+                assert phrase.lower() in match.group(0).lower(), (
+                    f"{slide_id} no longer preserves defining v5 source content: {phrase}"
+                )
+
+    def test_architecture_claims_are_rendered_as_diagrams(self, deck: str) -> None:
+        for diagram in (
+            "enterprise-platform",
+            "action-flow",
+            "model-routing",
+            "hybrid-retrieval",
+            "continuous-evaluation",
+            "tool-authority",
+            "security-topology",
+            "observability-trace",
+            "demo-architecture",
+        ):
+            assert f'data-diagram="{diagram}"' in deck
+
+    def test_the_deck_preserves_the_source_documents_core_claims(self, deck: str) -> None:
+        normalized_deck = re.sub(r"\s+", " ", deck).lower()
+        required_claims = (
+            "The model creates capability; the platform creates accountability.",
+            "Model intent is never proof of user authorization.",
+            "READY AI is an original field framework",
+            "not an official Microsoft standard",
+            "overall score of at least 60",
+            "no critical dimension below Level 2",
+        )
+        for claim in required_claims:
+            assert claim.lower() in normalized_deck
+
+    def test_field_positioning_consumption_and_external_architecture_sources_are_explicit(
+        self, deck: str
+    ) -> None:
+        normalized_deck = re.sub(r"\s+", " ", deck).lower()
+        for required_phrase in (
+            "AI Apps, Data, and Infrastructure meet at the release gate",
+            "Consumption map:",
+            "Field positioning:",
+            "Microsoft reference: Azure AI Landing Zones",
+            "Microsoft reference: MLOps v2 architecture",
+            "Microsoft reference: Azure API Management Landing Zone Architecture",
+            "fails the build when it no longer holds",
+        ):
+            assert required_phrase.lower() in normalized_deck
 
 
 @pytest.fixture

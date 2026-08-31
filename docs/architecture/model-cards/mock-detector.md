@@ -40,8 +40,8 @@ Three properties that a real model cannot provide during a demonstration:
 - **Substitutable.** It satisfies the same `Detector` protocol as `OnnxDetector` and `AzureMLEndpointDetector`. Moving to a real model changes one configuration value.
 
 The point of the platform is what happens *around* the detector. This fixture
-lets all of that be exercised without a trained model — see
-[ADR-0004](../../adr/0004-local-mock-mode-is-the-enforced-default.md).
+lets all of that be exercised without a trained model while the settings
+validator keeps local mode from selecting a cloud provider or enabling writes.
 
 ## Taxonomy
 

@@ -8,7 +8,7 @@
 # Evaluation is ordered first-match-wins. Ordering is therefore part of the
 # contract: a rule cannot be reordered without a version bump and a test change.
 
-version: "2.6.0"
+version: "2.7.0"
 description: >-
   Severity, disposition, approval and permitted-action policy for surface and
   structural defect detection on synthetic lines DEMO-L1 through DEMO-L4.
@@ -167,12 +167,43 @@ rules:
       permitted_actions: [notify_supervisor]
       reason_code: COSMETIC_FINDING_LOGGED
 
+  - id: R070-unsafe-replenishment
+    description: A blocked or discontinued SKU cannot be reordered.
+    when:
+      label: unsafe_replenishment
+      confidence_at_or_above_threshold: true
+    then:
+      allowed: false
+      severity: major
+      disposition: no_action
+      approval_required: false
+      permitted_actions: []
+      reason_code: UNSAFE_SKU_REJECTED
+
+  - id: R080-governed-replenishment
+    description: A supported low-stock signal requires inventory-manager approval.
+    when:
+      label: governed_replenishment
+      confidence_at_or_above_threshold: true
+    then:
+      allowed: true
+      severity: major
+      disposition: replenishment_order
+      approval_required: true
+      approver_role: inventory_manager
+      permitted_actions: [create_replenishment_order]
+      reason_code: REPLENISHMENT_REQUIRES_APPROVAL
+      obligations:
+        - id: OB-REPLENISHMENT-EVIDENCE
+          description: The proposal must cite an authoritative inventory constraint.
+          satisfied_by: retrieval
+
 # Guards run after a rule matches and can only ever narrow the outcome.
 # They exist so a future rule edit cannot accidentally widen authority.
 guards:
   - id: G001-no-write-without-approval
     description: Any disposition that mutates a system of record requires approval.
-    dispositions: [maintenance_work_order, quarantine, stop_line]
+    dispositions: [maintenance_work_order, quarantine, stop_line, replenishment_order]
     enforce_approval_required: true
 
   - id: G002-restricted-classification

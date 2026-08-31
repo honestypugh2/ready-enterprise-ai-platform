@@ -8,7 +8,6 @@ a condition.
 
 > **READY AI is an original field framework** created for the *Beyond the Agent*
 > session. It is **not** a Microsoft standard, product or official guidance.
-> See [ADR-0019](../adr/0019-ready-ai-is-an-original-field-framework.md).
 
 Five weighted dimensions, scored at one of five maturity levels, with a gate and
 a remediation backlog.
@@ -27,8 +26,9 @@ average its way past a control it does not have.
 
 ### The reference implementation fails its own gate
 
-This is the honest result and it is left visible. The repository has no
-authentication, no durable approval store, and no deployed environment. A
+This is the honest result and it is left visible. Development infrastructure is
+deployed, but the repository still has no application authentication, durable
+approval store, hosted application, or real system-of-record connector. A
 framework whose author's own code passes trivially would be worth nothing.
 
 ## Release gate
@@ -50,7 +50,7 @@ authoritative if the two ever disagree.
 1. **Durable approval storage.** Everything in the governance chain depends on the approval record existing. In-memory or file-backed does not survive a restart.
 2. **Authentication.** The API identifies callers by an HTTP header. Replace `get_identity` with Entra token validation at the gateway.
 3. **A real system-of-record connector.** The refusal chain is proven against in-memory mocks; the integration is unbuilt.
-4. **Deploy something.** Fifteen templates compile. Not one resource exists, so every infrastructure claim is a claim about source code.
+4. **Host and exercise the application.** Development resources exist in `rg-reap-dev`, but the API, worker, and web application are not hosted, and AML, Service Bus, and APIM policy execution remain unproven.
 5. **Re-baseline every evaluation threshold** against real components.
 
 ## Operational readiness
@@ -58,11 +58,11 @@ authoritative if the two ever disagree.
 | Capability | Status |
 |---|---|
 | Structured logging with redaction | Complete, stdout only |
-| Distributed tracing | Complete in structure, **never exported** |
+| Distributed tracing | Exported and queried for the live replenishment path; broader hosted-service coverage remains unproven |
 | Health probes | `/livez` does not touch dependencies; `/readyz` does — a liveness probe that calls a dependency restarts a healthy replica because something else is down |
 | Kill switch | Complete. Stops the workload before inference, so it spends nothing |
-| Alerting | One Sev-0 rule in Bicep: a write without a recorded approval. **Never deployed** |
-| Operational queries | Six KQL files. **None has ever run against a real workspace** |
+| Alerting | One Sev-0 resource deployed for a write without recorded approval; its trigger path has not been exercised |
+| Operational queries | Correlation lookup executed against `reap-dev-law`; the complete query set has not been exercised |
 | Dead-letter handling | Topic and subscription in Bicep; **no consumer handling** |
 | Disaster recovery | **Not implemented.** No documented RPO or RTO, no restore procedure, no tested failover |
 | Capacity planning | **Not implemented** |
@@ -94,4 +94,4 @@ instance-hour, billed whether or not they score anything).
 **No price appears in this repository.** Prices vary by region, tier, commitment
 and negotiated rate; quoting one would be inventing a number. The cost ledger
 records units and refuses to produce a currency figure without a supplied rate
-card. See [ADR-0016](../adr/0016-cost-per-completed-task.md).
+card.

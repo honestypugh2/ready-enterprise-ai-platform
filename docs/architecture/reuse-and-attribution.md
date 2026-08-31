@@ -41,8 +41,7 @@ usage, and the caller cannot tamper with what it emits. App-side logging is
 best-effort and spoofable; gateway-side logging is authoritative.*
 
 **Where:** `infra/apim/ai-gateway.policy.xml`,
-`infra/monitor/queries/cost-per-completed-task.kql`,
-[ADR-0012](../adr/0012-apim-as-the-ai-gateway.md).
+`infra/monitor/queries/cost-per-completed-task.kql`.
 
 **Extended:** a `CorrelationId` dimension, so cost attributes to a *transaction*
 and not only to a user — which is what makes cost per completed task
@@ -106,3 +105,15 @@ This repository is also MIT-licensed. See [LICENSE](../../LICENSE).
 Third-party dependencies are declared in `pyproject.toml` and
 `apps/web/package.json`. `make sbom` generates a CycloneDX SBOM, and
 `.github/workflows/security.yml` publishes one on every push to `main`.
+
+## Microsoft architecture baselines
+
+The repository and presentation use workload-specific diagrams adapted to this
+implementation. They do not reproduce or claim parity with these Microsoft
+reference architectures; the references provide the broader production
+baseline:
+
+- [Architecture pattern for AI workloads on Azure](https://learn.microsoft.com/en-us/azure/well-architected/ai/architecture-pattern?tabs=intelligentaiworkload) — client, intelligence, inference, knowledge, and tools layers, with security and responsible AI controls at every layer.
+- [Machine learning operations](https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/machine-learning-operations-v2) — model development and deployment loops, registries, gated promotion, and monitoring.
+- [Azure AI Landing Zones](https://github.com/Azure/AI-Landing-Zones/tree/main?tab=readme-ov-file) — secure, resilient application landing-zone reference implementations for Foundry and AI Gateway workloads.
+- [Azure API Management Landing Zone Architecture](https://learn.microsoft.com/en-us/azure/architecture/example-scenario/integration/app-gateway-internal-api-management-function) — Application Gateway and WAF in front of internal API Management, private back ends, Key Vault, Log Analytics, and Application Insights.

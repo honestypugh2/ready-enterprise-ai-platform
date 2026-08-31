@@ -35,6 +35,12 @@ _CONNECTORS = {
     "mock_d365": mock_dynamics365,
 }
 
+_REASONING_ROUTES = {
+    "mock": "mock-reasoner",
+    "foundry": "small-language-model",
+    "model_router": "foundry-model-router",
+}
+
 
 @dataclass(slots=True)
 class PlatformAssembly:
@@ -71,22 +77,26 @@ def build_platform(
     """Wire the platform for the configured execution mode."""
     resolved = settings or get_settings()
     configure_logging()
-    configure_observability(resolved)
 
     credential = (
         None
         if resolved.mode is ExecutionMode.LOCAL_MOCK
         else resolve_credential(resolved, identity=WorkloadIdentity.API)
     )
+    configure_observability(resolved, credential=credential)
 
     detector = build_detector(resolved, credential=credential)
     retriever = build_retriever(resolved, credential=credential)
-    router = PolicyRouter.from_path(resolved.governance.routing_policy_path)
+    reasoning_route = _REASONING_ROUTES[resolved.reasoning.provider]
+    router = PolicyRouter.from_path(
+        resolved.governance.routing_policy_path,
+        health_probe=lambda route_id: route_id == reasoning_route,
+    )
     policy = PolicyEngine.from_path(resolved.governance.policy_path)
 
     # The route decision selects the reasoning deployment, so the reasoner is
     # built against the route the policy would choose rather than a default.
-    reasoner = build_reasoner(resolved, credential=credential)
+    reasoner = build_reasoner(resolved, credential=credential, route_id=reasoning_route)
 
     approvals = ApprovalService(
         store=(

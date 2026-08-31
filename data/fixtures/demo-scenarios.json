@@ -140,6 +140,47 @@
         "approval_required": true,
         "guard": "G002-restricted-classification"
       }
+    },
+    {
+      "id": "unsafe-replenishment",
+      "name": "Unsafe replenishment candidate",
+      "narrative": "Synthetic fixture: a generated recommendation encounters a discontinued SKU. Deterministic policy rejects it; the model does not get a vote on the constraint.",
+      "frame_seed": "synthetic-inventory-snapshot-unsafe-0001",
+      "line_id": "SEA-01",
+      "station_id": "BIN-A-17",
+      "product_sku": "SKU-BEARING-041",
+      "batch_id": "SUP-1007:QTY-120",
+      "classification": "internal",
+      "batch_defect_count": 0,
+      "pinned_label": "unsafe_replenishment",
+      "pinned_confidence": 0.94,
+      "expects": {
+        "policy_rule": "R070-unsafe-replenishment",
+        "disposition": "no_action",
+        "approval_required": false,
+        "allowed": false
+      }
+    },
+    {
+      "id": "governed-replenishment",
+      "name": "Governed warehouse replenishment",
+      "narrative": "Synthetic fixture: governed inventory evidence supports a safe candidate. Policy requires a separate inventory-manager approval before the scoped writer dry-runs the exact D365 order.",
+      "frame_seed": "synthetic-inventory-snapshot-governed-0002",
+      "line_id": "SEA-01",
+      "station_id": "BIN-A-17",
+      "product_sku": "SKU-BEARING-042",
+      "batch_id": "SUP-1007:QTY-120",
+      "classification": "internal",
+      "batch_defect_count": 0,
+      "pinned_label": "governed_replenishment",
+      "pinned_confidence": 0.92,
+      "expects": {
+        "policy_rule": "R080-governed-replenishment",
+        "disposition": "replenishment_order",
+        "approval_required": true,
+        "approver_role": "inventory_manager",
+        "allowed": true
+      }
     }
   ]
 }

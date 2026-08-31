@@ -14,24 +14,27 @@ identically for a policy engine covered by 98 tests and for a Bicep template
 that had only ever been parsed. Both were "Complete". That is exactly the
 elision this document exists to prevent, so the two are now separated.
 
-- **Last verified:** 2026-08-29
-- **Verified by:** `make check`, `make eval`, `make secrets`, `make infra-lint`, `reap demo run`
-- **Execution mode:** `local_mock` — no Azure subscription, credential or network access
+- **Last verified:** 2026-08-31
+- **Verified by:** local quality gates, deployment `reap-dev-final`, and a live `reap demo replenish --persist` run against `rg-reap-dev`
+- **Execution mode:** `local_mock` by default; the live run used Azure AI Search, Foundry, and Application Insights while keeping the detector and approver synthetic and D365 in dry run
 
 ---
 
 ## The one-line summary
 
-> **Nothing in this repository has been executed against a live Azure
-> dependency.** No resource has been provisioned, no model called, no index
-> queried, no message published, no trace exported.
+> **This repository's development infrastructure is deployed in `rg-reap-dev`.**
+> The live replenishment path has observed Azure AI Search retrieval, a Foundry
+> `gpt-4o-mini` completion, and an Application Insights trace. AML scoring,
+> Service Bus messaging, APIM policy application, application hosting, and every
+> real system-of-record write remain unproven.
 
-The governance core is heavily tested offline. Everything that touches Azure is
-source code that compiles.
+The governance core is heavily tested offline. The live proof is narrow: it
+proves the deployed demo path, not every provisioned service or production
+posture.
 
 | Proof level | What it means | Where it applies |
 |---|---|---|
-| ⬤ **Proven** | Executed against the real dependency, result observed | **Nothing. The column is empty.** |
+| ⬤ **Proven** | Executed against the real dependency, result observed | Search retrieval, Foundry completion, correlated Application Insights trace, and the governed dry-run replenishment chain |
 | ◑ **Tested** | Executed offline against fixtures, with automated tests asserting the behaviour | The governance core: contracts, policy, approvals, the writer, audit, retrieval trimming, redaction |
 | ◔ **Checked** | Parsed, compiled or schema-validated. Never executed | Bicep templates, parameter files, compose config, documentation links |
 | ○ **Written** | Source exists. Never executed or validated in any way | Every Azure adapter, the APIM policy, the KQL queries, the CI workflows, the container image |
@@ -91,9 +94,9 @@ detection.
 | Compose | `docker compose config` | Valid, 3 services | ◔ |
 | Doc links | link checker | 94/94 resolve | ◔ |
 
-**Never run:** any Azure deployment; any AML scoring call; any Foundry
-completion; any Azure AI Search query; any Service Bus message; any App Insights
-export; any GitHub Actions workflow; any container image build.
+**Never run:** any AML scoring call; any Service Bus message; any real D365
+write; any GitHub Actions workflow; any container image build or application
+host deployment.
 
 ---
 
@@ -133,28 +136,29 @@ export; any GitHub Actions workflow; any container image build.
 - **If deployed:** nothing depends on it, so nothing breaks. A demonstrated capability, not a used one.
 - **Next:** wire it into the policy input as an advisory signal, or state plainly that it is illustrative.
 
-### Retrieval — Partial · ◑ Tested / ○ Written
+### Retrieval — Partial · ◑ Tested / ⬤ Proven for Azure Search
 
 | Implementation | State | Proof |
 |---|---|---|
 | `LocalKnowledgeRetriever` | Implemented | ◑ Tested |
-| `AzureSearchRetriever` | Adapter only | ○ Written |
+| `AzureSearchRetriever` | Adapter only | ⬤ Proven — entitlement-filtered query observed against `replenishment-knowledge` |
 | `AgenticRetriever` | Partial | ○ Written — decomposition implemented, never run live |
+| Azure Search demo indexer | Implemented | ⬤ Proven — 8 labelled synthetic passages uploaded |
 
 - **Proven by:** entitlements and classification applied **before** scoring, asserted by a test that asks for `top_k=1` and requires one real result; empty entitlements return nothing; two identities get different answers from one corpus.
 - **Gap:** the local "vector" component is **hashed character trigrams, not a semantic embedding model.** Relevance quality is not representative of anything.
 - **If deployed:** the *governance* of retrieval transfers directly. The *retrieval quality* does not.
-- **Next:** run the evaluation suite against a provisioned index and compare graders.
+- **Next:** run the full evaluation suite against the provisioned index and compare graders before making a retrieval-quality claim.
 
-### Reasoning — Mocked + Adapter only · ◑ Tested / ○ Written
+### Reasoning — Mocked + Adapter only · ◑ Tested / ⬤ Proven on the repo deployment
 
 | Implementation | State | Proof |
 |---|---|---|
 | `MockReasoner` | Implemented (template engine) | ◑ Tested |
-| `FoundryReasoner` | Adapter only | ○ Written — never called a deployment |
+| `FoundryReasoner` | Adapter only | ⬤ Proven — structured `gpt-4o-mini` completions observed for both replenishment scenarios |
 
 - **Proven by:** `Recommendation` has no field for a verdict, asserted by a contract test; non-refusing output must cite a retrieved passage; the plane cannot import `connectors`, `approvals` or `policy_engine`.
-- **Gap:** the mock is a template engine. **No output-quality claim is made.**
+- **Gap:** the mock is a template engine. The one live completion proves adapter compatibility, not output quality, repeatability, or an evaluation threshold.
 - **If deployed:** substituting a real model changes wording and cost, not authority — but it is untested against a real model's failure modes: verbosity, refusal drift, citation fabrication, non-determinism.
 - **Next:** run the citation graders against a live deployment before quoting any citation-precision figure.
 
@@ -197,12 +201,12 @@ export; any GitHub Actions workflow; any container image build.
 - **If deployed locally:** an audit record can be deleted by anyone who can delete a file.
 - **Next:** deploy the storage module and point state at the immutable container.
 
-### Observability — Partial · ◑ Tested / ○ Written
+### Observability — Partial · ◑ Tested / ⬤ Proven for trace export
 
 - **Proven by:** one root span per transaction with every step a child; redaction in the formatter, so no call site can bypass it. A `LoggerAdapter` bug that silently dropped caller-supplied fields was found and fixed.
-- **Gap:** the Azure Monitor exporter is ○ Written — **never exported a span.** Metrics are in-process counters. The six KQL queries have **never been run against a real workspace.**
-- **If deployed:** traces are correct in structure and unproven in transit. A query that has never run is a hypothesis.
-- **Next:** export to a real workspace and execute each query before quoting any of them.
+- **Proven live by:** the synthetic governed replenishment transaction exported to `reap-dev-appi` and was queried by correlation and trace ID in `reap-dev-law`; transaction, reasoning, validation, and action spans were observed.
+- **Gap:** metrics are in-process counters. The six repository KQL files have not all been exercised.
+- **Next:** execute every checked-in query before quoting operational coverage.
 
 ### Events — Partial · ◑ Tested / ○ Written
 
@@ -240,7 +244,7 @@ export; any GitHub Actions workflow; any container image build.
 | `apps/api` | Implemented | ◑ Tested | **The `x-demo-role` header is persona selection, not authentication** |
 | `apps/worker` | Implemented | ◑ Tested | Graceful SIGTERM drain. Holds no connector. In-process bus only |
 | `apps/web` | Implemented | ◑ Tested | React 19 + Vite 8, TS strict. Labels every figure as fixture or measurement |
-| `packages/cli` (`reap`) | Implemented | ◑ Tested | `demo`, `eval`, `ready`, `audit`, `doctor` |
+| `packages/cli` (`reap`) | Implemented | ◑ Tested | `demo`, `eval`, `ready`, `audit`, `doctor`, Azure index/preflight |
 
 ### Known API gaps
 
@@ -252,14 +256,15 @@ export; any GitHub Actions workflow; any container image build.
 
 ## 4. Infrastructure and operations
 
-Every row below is at best ◔ **Checked**. **No resource has been provisioned.**
+The development infrastructure is deployed in the repo-owned `rg-reap-dev` resource group. Provisioning is not proof that an adapter has executed; those distinctions remain explicit below.
 
 | Component | Implementation | Proof | Notes |
 |---|---|---|---|
-| `infra/` Bicep | Implemented | ◔ Checked | 15 templates compile. Nothing applied to a subscription |
+| `infra/` Bicep | Implemented | ⬤ Proven for dev provisioning | Deployment `reap-dev-final` succeeded in East US |
+| `infra/demo/` Search-only Bicep | Implemented | ◔ Checked | Superseded by the isolated full dev deployment |
 | `infra/environments/{dev,test,prod}` | Implemented | ◔ Checked | All three validate. Owner and cost centre are `CHANGE-ME` by design |
 | Private endpoints, DNS, VNet | Implemented | ◔ Checked | Derived from the environment, so prod cannot omit them |
-| `infra/apim/ai-gateway.policy.xml` | Implemented | ○ Written | Never applied. The Entra path needs an app registration |
+| `infra/apim/ai-gateway.policy.xml` | Implemented | ○ Written | APIM service exists, but policy application is disabled until the Entra app registration and logger auth are supplied |
 | `infra/monitor/queries/*.kql` | Implemented | ○ Written | Six queries. **Not one has been run** |
 | `Dockerfile` | Implemented | ○ Written | **Build fails locally** — buildkit cannot reach PyPI. An environment fault, but the image has never been built |
 | `docker-compose.yml` | Implemented | ◔ Checked | Config-valid, never run. Depends on the image above |
@@ -269,15 +274,17 @@ Every row below is at best ◔ **Checked**. **No resource has been provisioned.*
 | `.devcontainer/` | Implemented | ○ Written | Never opened |
 | `scripts/scan-secrets.sh` | Implemented | ◑ Tested | Runs in git mode; found a true positive on first execution |
 | `scripts/validate-bicep.sh` | Implemented | ◑ Tested | Validates 15 templates + 3 parameter files |
-| `scripts/deploy.sh` | Implemented | ○ Written | Never run against Azure. Refuses prod from a workstation |
+| `scripts/deploy.sh` | Implemented | ◔ Checked | Deployment used the equivalent reviewed Azure CLI path; script itself was not used for apply |
+| `reap azure index/preflight` | Implemented | ⬤ Proven | Index upload and all live preflight checks passed |
 | Terraform parity | Absent | — | |
 
 ---
 
 ## 5. Documentation
 
-All ◔ **Checked** — 94/94 relative links and every `docs/` reference from source
-resolve, verified by script rather than by eye.
+All tracked public documentation links are checked by the repository validation
+suite. Presenter mapping, field positioning, and decision notes are maintained
+locally and are intentionally excluded from the published repository.
 
 | Document | State |
 |---|---|
@@ -285,7 +292,6 @@ resolve, verified by script rather than by eye.
 | `docs/architecture/overview.md` | Implemented — planes, trust boundaries, where each claim is enforced |
 | `docs/architecture/reuse-and-attribution.md` | Implemented |
 | `docs/architecture/model-cards/mock-detector.md` | Implemented — opens by stating it is not a model |
-| `docs/adr/` | Implemented — 19 records, each with its cost and what would change it |
 | `docs/security/threat-model.md` | Implemented — STRIDE + OWASP LLM Top 10, unmitigated risks named |
 | `docs/security/authorization-model.md` | Implemented |
 | `docs/evaluations/framework.md` | Implemented |
@@ -293,8 +299,6 @@ resolve, verified by script rather than by eye.
 | `docs/operations/preview-register.md` | Implemented — every preview API version, pinned constraint and non-version prerequisite in one place |
 | `docs/operations/production-readiness.md` | Implemented |
 | `docs/demo/runbook.md` | Implemented — including the questions you will be asked |
-| `docs/presentation-mapping/README.md` | Implemented — message → component → test → demo step |
-| `docs/field-positioning/README.md` | Implemented — including where this does *not* apply |
 | `CODE_OF_CONDUCT.md` | Absent |
 | Disaster recovery guidance | Absent — no RPO, no RTO, no tested restore |
 | Operations runbook / on-call | Absent |

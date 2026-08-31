@@ -76,6 +76,11 @@ class AzureSearchRetriever:
             return False
         return True
 
+    async def close(self) -> None:
+        if self._client is not None:
+            await self._client.close()
+            self._client = None
+
     @staticmethod
     def entitlement_filter(query: RetrievalQuery) -> str:
         """OData filter restricting results to the caller's groups and classification.
@@ -89,7 +94,7 @@ class AzureSearchRetriever:
         permitted = [c.value for c in Classification if c.rank <= query.max_classification.rank]
         classifications = ",".join(permitted)
         return (
-            f"search.in(access_groups, '{escaped}', ',') "
+            f"access_groups/any(group: search.in(group, '{escaped}', ',')) "
             f"and search.in(classification, '{classifications}', ',')"
         )
 

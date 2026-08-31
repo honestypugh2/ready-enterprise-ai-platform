@@ -97,5 +97,3 @@ Production evaluation is **not implemented**. The design is that the same
 graders run against sampled live transactions and feed the same thresholds, so
 the release gate and the production dashboard cannot disagree about what "good"
 means.
-
-See [ADR-0014](../adr/0014-evaluation-gates-block-a-release.md).

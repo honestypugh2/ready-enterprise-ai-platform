@@ -464,12 +464,18 @@ class GovernedQualityWorkflow:
         ledger: CostLedger,
         outcome: WorkflowOutcome,
     ) -> RetrievalResult:
-        query = RetrievalQuery(
-            correlation_id=detection.correlation_id,
-            text=(
+        replenishment_signal = detection.primary_label.endswith("replenishment")
+        query_text = (
+            f"{detection.primary_label} SKU supplier inventory constraint approval and order"
+            if replenishment_signal
+            else (
                 f"{detection.primary_label} defect disposition, approval role and "
                 "required action for the affected unit"
-            ),
+            )
+        )
+        query = RetrievalQuery(
+            correlation_id=detection.correlation_id,
+            text=query_text,
             strategy=RetrievalStrategy.HYBRID,
             entitlement_groups=identity.entitlement_groups,
         )
@@ -772,6 +778,7 @@ class GovernedQualityWorkflow:
         if not policy.permitted_actions:
             return ActionKind.NOTIFY_SUPERVISOR
         preference = (
+            ActionKind.CREATE_REPLENISHMENT_ORDER,
             ActionKind.QUARANTINE_BATCH,
             ActionKind.CREATE_WORK_ORDER,
             ActionKind.CREATE_INCIDENT,
@@ -793,7 +800,7 @@ class GovernedQualityWorkflow:
             raise ValueError("cannot build a payload before detection and policy")
         return {
             "prediction_id": detection.prediction_id,
-            "defect_label": detection.primary_label,
+            "signal_label": detection.primary_label,
             "confidence": f"{detection.primary_confidence:.4f}",
             "severity": policy.severity.value,
             "disposition": policy.disposition.value,

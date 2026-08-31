@@ -122,6 +122,7 @@ def mock_erp() -> MockEnterpriseConnector:
                 ActionKind.QUARANTINE_BATCH,
                 ActionKind.SCHEDULE_INSPECTION,
                 ActionKind.NOTIFY_SUPERVISOR,
+                ActionKind.CREATE_REPLENISHMENT_ORDER,
             }
         ),
     )
@@ -137,13 +138,14 @@ def mock_servicenow() -> MockEnterpriseConnector:
 
 
 def mock_dynamics365() -> MockEnterpriseConnector:
-    """Customer-facing case surface."""
+    """Dynamics 365 case and supply-chain surface."""
     return MockEnterpriseConnector(
         system_name="mock-d365",
         reference_prefix="CASE",
         supported_actions=frozenset(
             {
                 ActionKind.CREATE_INCIDENT,
+                ActionKind.CREATE_REPLENISHMENT_ORDER,
                 ActionKind.CREATE_WORK_ORDER,
                 ActionKind.NOTIFY_SUPERVISOR,
             }
