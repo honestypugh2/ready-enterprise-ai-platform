@@ -180,7 +180,8 @@ class TestDeckClaimsMatchTheSystem:
         available = set(load_scenarios())
         shown = set(re.findall(r"reap demo run --scenario ([a-z-]+)", deck))
         assert shown <= available, f"the deck runs scenarios that do not exist: {shown - available}"
-        assert "reap demo replenish --persist" in deck
+        assert "make azure-demo-preflight" in deck
+        assert "http://127.0.0.1:5173" in deck
 
     def test_the_delivery_contract_matches_the_v5_deck(self, deck: str) -> None:
         main_slides = re.findall(r'<section[^>]+data-slide="S\d{2}"', deck)
@@ -329,7 +330,7 @@ class TestDeckClaimsMatchTheSystem:
             "S15": ("human correction cost", "workload, route, and tenant"),
             "S16": ("warehouse-replenishment-ai-demo", "field service"),
             "S17": ("Nothing here is optional", "action correctness"),
-            "S18": ("Keep two frames ready", "business KPI"),
+            "S18": ("Keep two frames ready", "correlation ID"),
             "S19": ("writer failover", "benchmark-driven routing"),
             "S20": ("0 Absent", "High-impact actions demand stricter thresholds"),
             "S21": ("task completion", "one job, identity, and permitted action"),

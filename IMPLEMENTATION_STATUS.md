@@ -14,8 +14,8 @@ identically for a policy engine covered by 98 tests and for a Bicep template
 that had only ever been parsed. Both were "Complete". That is exactly the
 elision this document exists to prevent, so the two are now separated.
 
-- **Last verified:** 2026-08-31
-- **Verified by:** local quality gates, deployment `reap-dev-final`, and a live `reap demo replenish --persist` run against `rg-reap-dev`
+- **Last verified:** 2026-09-01
+- **Verified by:** local quality gates, deployment `reap-dev-final`, a live CLI run, and a local presenter-console rehearsal against `rg-reap-dev`
 - **Execution mode:** `local_mock` by default; the live run used Azure AI Search, Foundry, and Application Insights while keeping the detector and approver synthetic and D365 in dry run
 
 ---
@@ -243,7 +243,7 @@ host deployment.
 |---|---|---|---|
 | `apps/api` | Implemented | ◑ Tested | **The `x-demo-role` header is persona selection, not authentication** |
 | `apps/worker` | Implemented | ◑ Tested | Graceful SIGTERM drain. Holds no connector. In-process bus only |
-| `apps/web` | Implemented | ◑ Tested | React 19 + Vite 8, TS strict. Labels every figure as fixture or measurement |
+| `apps/web` | Implemented | ◑ Tested | Replenishment presenter console with controlled stage revelation; unsafe and governed browser paths rehearsed locally at desktop and mobile sizes. Labels live, fixture, and dry-run boundaries. Not hosted |
 | `packages/cli` (`reap`) | Implemented | ◑ Tested | `demo`, `eval`, `ready`, `audit`, `doctor`, Azure index/preflight |
 
 ### Known API gaps

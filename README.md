@@ -125,6 +125,11 @@ Honesty about status is a feature of this repository, not a caveat buried at the
 
 The two are separated because one column was hiding the difference between a plane covered by automated tests and a Bicep template that had only ever been parsed. The current proof is deliberately narrow: Azure AI Search retrieval, a Foundry completion, and an Application Insights trace have been observed in `rg-reap-dev`; other provisioned services remain unproven.
 
+The local presenter console runs those same governed replenishment transactions
+through the API with audience-controlled stage revelation. Start the API with
+`make dev` and the console with `make web`; the terminal CLI remains the offline
+fallback and detailed diagnostic surface.
+
 Three statements that apply everywhere:
 
 - **No fabricated numbers.** No benchmark, accuracy figure, latency claim, Azure price or customer outcome appears in this repository unless it was measured locally and is labelled as a demonstration measurement.

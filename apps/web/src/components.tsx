@@ -10,6 +10,7 @@ import type {
   RecommendationView,
   RouteView,
 } from "./api";
+import { presenterStages, type PresenterStageKey } from "./presenter";
 
 export function Row({ k, v }: { k: string; v: React.ReactNode }) {
   return (
@@ -23,7 +24,7 @@ export function Row({ k, v }: { k: string; v: React.ReactNode }) {
 export function Detection({ d }: { d: DetectionView }) {
   return (
     <section className="panel">
-      <h2>1 · Detection — the specialized model</h2>
+      <h2>Detection — fixture signal</h2>
       <Row k="label" v={<strong>{d.label}</strong>} />
       <Row k="confidence" v={`${(d.confidence * 100).toFixed(1)}%`} />
       <Row k="decision threshold" v={`${(d.threshold * 100).toFixed(1)}%`} />
@@ -49,7 +50,7 @@ export function Detection({ d }: { d: DetectionView }) {
 export function Route({ r }: { r: RouteView }) {
   return (
     <section className="panel">
-      <h2>2 · Route — why this component answered</h2>
+      <h2>Route — why this component answered</h2>
       <Row k="selected" v={<strong>{r.selected_route}</strong>} />
       <Row k="kind" v={r.selected_kind} />
       <Row k="cost category" v={r.cost_category} />
@@ -82,7 +83,7 @@ export function Route({ r }: { r: RouteView }) {
 export function Evidence({ e }: { e: EvidenceView }) {
   return (
     <section className="panel">
-      <h2>3 · Evidence — governed retrieval</h2>
+      <h2>Evidence — governed retrieval</h2>
       <Row k="strategy" v={e.strategy} />
       <Row k="index" v={`${e.index_name} · ${e.index_version}`} />
       <Row
@@ -127,7 +128,7 @@ export function Evidence({ e }: { e: EvidenceView }) {
 export function Recommendation({ r }: { r: RecommendationView }) {
   return (
     <section className="panel">
-      <h2>4 · Explanation — grounded, and not a decision</h2>
+      <h2>Explanation — grounded, and not a decision</h2>
       {r.refused ? (
         <p>
           <span className="tag stop">refused</span> {r.refusal_reason}
@@ -151,8 +152,8 @@ export function Recommendation({ r }: { r: RecommendationView }) {
         }
       />
       <div style={{ marginTop: "0.5rem" }}>
-        {r.citations.map((c) => (
-          <span key={c} className="tag">
+        {r.citations.map((c, index) => (
+          <span key={`${c}-${index}`} className="tag">
             [{c}]
           </span>
         ))}
@@ -169,7 +170,7 @@ export function Recommendation({ r }: { r: RecommendationView }) {
 export function Policy({ p }: { p: PolicyView }) {
   return (
     <section className="panel">
-      <h2>5 · Policy — the verdict, decided outside the model</h2>
+      <h2>Policy — the verdict, decided outside the model</h2>
       <Row k="disposition" v={<strong>{p.disposition}</strong>} />
       <Row k="severity" v={p.severity} />
       <Row
@@ -217,7 +218,7 @@ export function Approval({
   const decided = a.decisions.length;
   return (
     <section className="panel">
-      <h2>6 · Approval — a named human, on this exact proposal</h2>
+      <h2>Approval — a named human, on this exact proposal</h2>
       <Row
         k="state"
         v={
@@ -266,7 +267,7 @@ export function Action({ a }: { a: ActionView }) {
   const dryRun = a.status === "dry_run";
   return (
     <section className="panel">
-      <h2>7 · Action — the only component that may write</h2>
+      <h2>Action — the only component that may write</h2>
       <Row
         k="status"
         v={
@@ -281,8 +282,8 @@ export function Action({ a }: { a: ActionView }) {
       {a.error_code && <Row k="error" v={a.error_code} />}
       {dryRun && (
         <p className="muted">
-          Dry run: a receipt exists, no record was created. This is the enforced
-          default in local mock mode.
+          Dry run: a receipt exists, no record was created. Connector execution
+          remains disabled for this demonstration.
         </p>
       )}
     </section>
@@ -292,7 +293,7 @@ export function Action({ a }: { a: ActionView }) {
 export function Audit({ a }: { a: AuditView }) {
   return (
     <section className="panel full">
-      <h2>8 · Audit — a chain, not a log</h2>
+      <h2>Audit — a chain, not a log</h2>
       <Row
         k="chain verified"
         v={
@@ -358,27 +359,53 @@ export function Transaction({
   inspection,
   onDecide,
   busy,
+  visibleCount = Number.POSITIVE_INFINITY,
 }: {
   inspection: Inspection;
   onDecide: (principal: string, decision: string) => void;
   busy: boolean;
+  visibleCount?: number;
 }) {
+  const stages = presenterStages(inspection);
   return (
-    <div className="grid">
-      {inspection.detection && <Detection d={inspection.detection} />}
-      {inspection.route && <Route r={inspection.route} />}
-      {inspection.evidence && <Evidence e={inspection.evidence} />}
-      {inspection.recommendation && (
-        <Recommendation r={inspection.recommendation} />
-      )}
-      {inspection.policy && <Policy p={inspection.policy} />}
-      {inspection.approval && (
-        <Approval a={inspection.approval} onDecide={onDecide} busy={busy} />
-      )}
-      {inspection.action && <Action a={inspection.action} />}
-      <Latency steps={inspection.step_latencies_ms} />
-      {inspection.cost && <Cost c={inspection.cost} />}
-      {inspection.audit && <Audit a={inspection.audit} />}
+    <div className="stage-stack">
+      {stages.slice(0, visibleCount).map((stage, index, visibleStages) => (
+        <div
+          className={`stage-reveal ${index === visibleStages.length - 1 ? "stage-current" : "stage-complete"}`}
+          key={stage.key}
+        >
+          <span className="stage-number">{String(index + 1).padStart(2, "0")}</span>
+          {index === visibleStages.length - 1 ? (
+            stageContent(stage.key, inspection, onDecide, busy)
+          ) : (
+            <div className="stage-summary">
+              <strong>{stage.title}</strong>
+              <span>verified</span>
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
+}
+
+function stageContent(
+  key: PresenterStageKey,
+  inspection: Inspection,
+  onDecide: (principal: string, decision: string) => void,
+  busy: boolean,
+): React.ReactNode {
+  if (key === "detection" && inspection.detection) return <Detection d={inspection.detection} />;
+  if (key === "evidence" && inspection.evidence) return <Evidence e={inspection.evidence} />;
+  if (key === "route" && inspection.route) return <Route r={inspection.route} />;
+  if (key === "recommendation" && inspection.recommendation) {
+    return <Recommendation r={inspection.recommendation} />;
+  }
+  if (key === "policy" && inspection.policy) return <Policy p={inspection.policy} />;
+  if (key === "approval" && inspection.approval) {
+    return <Approval a={inspection.approval} onDecide={onDecide} busy={busy} />;
+  }
+  if (key === "action" && inspection.action) return <Action a={inspection.action} />;
+  if (key === "audit" && inspection.audit) return <Audit a={inspection.audit} />;
+  return null;
 }

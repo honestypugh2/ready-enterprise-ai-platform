@@ -61,15 +61,14 @@ make check          # ~10s — proves the machine is ready
 
 If `make check` passes, the demo will run.
 
-## Rehearse
+## Rehearse the terminal fallback
 
 ```bash
 reap demo replenish --persist
 ```
 
-This is the only conference demo. It runs the unsafe rejection followed by the
-approved dry-run order using labelled synthetic inventory, supplier, approver,
-and D365 data.
+This runs the same unsafe rejection and approved dry-run order as the presenter
+console using labelled synthetic inventory, supplier, approver, and D365 data.
 
 ## The replenishment sequence
 
@@ -103,7 +102,12 @@ make web            # terminal 2 — http://127.0.0.1:5173
 ```
 
 The UI renders the same transaction and labels every figure as a fixture or a
-measurement. Use it when the audience is not comfortable reading a terminal.
+measurement. This is the primary conference surface: choose the unsafe candidate,
+reveal its deterministic rejection, then choose the governed candidate, approve
+the exact fingerprint, and finish on the dry-run receipt and verified chain. The
+**Next stage** control reveals an already-completed server response; it does not
+pretend the workflow is streaming. Keep the terminal for preflight and the final
+Application Insights correlation query.
 
 ## No network at all
 

@@ -214,6 +214,13 @@ export function health(): Promise<{ mode: string; status: string }> {
   return request<{ mode: string; status: string }>("/healthz");
 }
 
+export function executionBadge(mode: string | null | undefined): string {
+  if (mode === undefined) return "CHECKING · configured execution mode";
+  if (mode === null) return "UNAVAILABLE · API not connected";
+  if (mode === "azure_dev") return "LIVE · Search / Foundry / telemetry";
+  return "FALLBACK · local retrieval / reasoning / telemetry";
+}
+
 /**
  * Every surface that shows a number must also say where it came from.
  * `local_mock` means the figures are fixtures, not measurements.
