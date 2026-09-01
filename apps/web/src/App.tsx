@@ -25,8 +25,18 @@ const SCENARIOS = {
 } as const;
 
 type ScenarioId = keyof typeof SCENARIOS;
+type Theme = "light" | "dark";
+
+const THEME_STORAGE_KEY = "reap-theme";
+
+function initialTheme(): Theme {
+  const savedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+  if (savedTheme === "light" || savedTheme === "dark") return savedTheme;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
 
 export default function App() {
+  const [theme, setTheme] = useState<Theme>(initialTheme);
   const [mode, setMode] = useState<string | null | undefined>(undefined);
   const [inspection, setInspection] = useState<Inspection | null>(null);
   const [active, setActive] = useState<string | null>(null);
@@ -39,6 +49,12 @@ export default function App() {
       .then((h) => setMode(h.mode))
       .catch(() => setMode(null));
   }, []);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.style.colorScheme = theme;
+    window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+  }, [theme]);
 
   const run = useCallback(async (id: ScenarioId) => {
     setBusy(true);
@@ -93,10 +109,21 @@ export default function App() {
           <p className="eyebrow">Ready Enterprise AI Platform</p>
           <h1>Governed Replenishment Console</h1>
         </div>
-        <div className="provenance" aria-label="Demonstration provenance">
-          <span className={mode === "azure_dev" ? "provenance-live" : ""}>{badge}</span>
-          <span>FIXTURE · inventory / detector / identities</span>
-          <span className="provenance-dry">ACTION · DRY RUN</span>
+        <div className="header-tools">
+          <div className="provenance" aria-label="Demonstration provenance">
+            <span className={mode === "azure_dev" ? "provenance-live" : ""}>{badge}</span>
+            <span>FIXTURE · inventory / detector / identities</span>
+            <span className="provenance-dry">ACTION · DRY RUN</span>
+          </div>
+          <button
+            type="button"
+            className="theme-toggle"
+            aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+            title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+            onClick={() => setTheme((current) => (current === "light" ? "dark" : "light"))}
+          >
+            <span aria-hidden="true">{theme === "light" ? "☾" : "☀"}</span>
+          </button>
         </div>
       </header>
 

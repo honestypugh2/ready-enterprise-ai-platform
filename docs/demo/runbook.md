@@ -1,5 +1,53 @@
 # Demo runbook
 
+This is the authoritative operating guide for the 25-minute **Beyond the Agent**
+session. The exact words and timing for each slide are in the Reveal speaker
+notes in `presentation/index.html`; press `S` in the deck to open them. This
+runbook owns setup, screen changes, demo actions, fallback language, and the
+claims that may be made on stage.
+
+## Presenter contract
+
+Before the audience enters, open these surfaces and do not rearrange them
+during the talk:
+
+1. Run `make deck` and open `http://localhost:5180` in full screen. Press `S`
+	for the timed speaker view.
+2. Run `make dev` and `make web` in separate terminals. Open
+	`http://127.0.0.1:5173`, select the preferred display mode, and leave the
+	console on its initial screen.
+3. Run `make azure-demo-preflight` in a third terminal. Leave the result ready
+	as proof; do not run diagnostics during the timed demo.
+4. Keep the labelled local fallback and the final Application Insights trace
+	ready in separate tabs.
+
+| Time | Surface | Presenter action and talk-track outcome |
+|---|---|---|
+| 0:00-16:00 | Deck, S01-S15 | Establish that models are components and the platform owns evidence, authority, writes, evaluation, and operations. Follow the speaker notes. |
+| 16:00-16:30 | Deck, S16 | State the demo contract: synthetic business data and identities; live Azure only where observed; writer remains dry-run. |
+| 16:30-17:00 | Deck, S17 | Point to separate evidence, reasoning, policy, approval, writer, identity, and observability boundaries. |
+| 17:00-20:00 | App, guided by S18 | Run the unsafe candidate first, then the governed candidate. Narrate the eight stages below. |
+| 20:00-25:00 | Deck, S19-S21 | Return to the deck. Close on reusable assets, the READY AI original field framework, and the workload assessment challenge. |
+
+The app sequence is exact:
+
+1. Select **01 / Unsafe candidate** and reveal each stage. At policy, say:
+	"The deterministic rule rejects the discontinued SKU. The model does not
+	get a vote on an authoritative constraint."
+2. Select **02 / Governed candidate** and reveal detection, entitled evidence,
+	route selection, grounded explanation, and deterministic policy.
+3. At approval, point to the exact proposal fingerprint and named role. Approve
+	as the separate inventory manager.
+4. Reveal the scoped writer receipt and say "dry run". Do not claim an ERP
+	write.
+5. Finish on the verified audit chain and copy its correlation ID to the
+	prepared Application Insights trace. Then return to slide S19.
+
+For each transaction, narrate the same eight verbs shown on S18: **detect,
+retrieve, route, explain, decide, approve, act, prove**. The **Next stage**
+button reveals an already-completed response; never describe it as a streaming
+workflow.
+
 ## Protected live Azure sequence - slides S16-S18
 
 The 16:00-20:00 window runs from the presenter workstation and uses real Azure

@@ -243,7 +243,7 @@ host deployment.
 |---|---|---|---|
 | `apps/api` | Implemented | ◑ Tested | **The `x-demo-role` header is persona selection, not authentication** |
 | `apps/worker` | Implemented | ◑ Tested | Graceful SIGTERM drain. Holds no connector. In-process bus only |
-| `apps/web` | Implemented | ◑ Tested | Replenishment presenter console with controlled stage revelation; unsafe and governed browser paths rehearsed locally at desktop and mobile sizes. Labels live, fixture, and dry-run boundaries. Not hosted |
+| `apps/web` | Implemented | ◑ Tested | Replenishment presenter console with controlled stage revelation and a persistent system-aware light/dark theme; browser paths rehearsed locally at desktop and mobile sizes. Labels live, fixture, and dry-run boundaries. Not hosted |
 | `packages/cli` (`reap`) | Implemented | ◑ Tested | `demo`, `eval`, `ready`, `audit`, `doctor`, Azure index/preflight |
 
 ### Known API gaps
