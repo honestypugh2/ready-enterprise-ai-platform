@@ -25,6 +25,7 @@ from retrieval.local import LocalKnowledgeRetriever
 
 KNOWLEDGE_DIR = REPO_ROOT / "data" / "knowledge"
 CORPUS_FILES = sorted(KNOWLEDGE_DIR.glob("*.json"))
+TALK_SCRIPT = REPO_ROOT / "docs" / "presentation-mapping" / "talk-script.md"
 
 # Deliberately stale, and the only two that may be. SOP-311 is superseded
 # guidance; REF-905 is an archived reference. Both exist so the freshness
@@ -215,6 +216,35 @@ class TestDeckClaimsMatchTheSystem:
         }
         for slide, timing in expected.items():
             assert f'data-slide="{slide}" data-timing="{timing}"' in deck
+
+    def test_every_timed_slide_has_the_complete_canonical_talk_track(self, deck: str) -> None:
+        script = TALK_SCRIPT.read_text(encoding="utf-8")
+        sections = re.findall(
+            r"^## (S\d{2}) - (.+?) - (\d+:\d+-\d+:\d+)\n\n([\s\S]*?)(?=\n## |\Z)",
+            script,
+            flags=re.MULTILINE,
+        )
+        assert len(sections) == 21
+
+        for slide_id, _title, timing, body in sections:
+            slide = re.search(
+                rf'<section[^>]+data-slide="{slide_id}"[^>]+data-timing="{timing}".*?</section>',
+                deck,
+                flags=re.DOTALL,
+            )
+            assert slide is not None, f"{slide_id} is missing or has drifted from timing {timing}"
+            notes = re.search(
+                rf'<aside class="notes" data-talk-track="{slide_id}">(.*?)</aside>',
+                slide.group(0),
+                flags=re.DOTALL,
+            )
+            assert notes is not None, f"{slide_id} has no synchronized speaker notes"
+            rendered_words = re.findall(r"[A-Za-z0-9]+", re.sub(r"<[^>]+>", " ", notes.group(1)))
+            source_words = re.findall(r"[A-Za-z0-9]+", body)
+            assert len(rendered_words) >= len(source_words), (
+                f"{slide_id} speaker notes are truncated: "
+                f"{len(rendered_words)} rendered words for {len(source_words)} source words"
+            )
 
     def test_the_v5_demo_window_requires_a_live_azure_path_and_an_honest_fallback(
         self, deck: str

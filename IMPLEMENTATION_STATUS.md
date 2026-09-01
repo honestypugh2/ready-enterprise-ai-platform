@@ -283,8 +283,9 @@ The development infrastructure is deployed in the repo-owned `rg-reap-dev` resou
 ## 5. Documentation
 
 All tracked public documentation links are checked by the repository validation
-suite. Presenter mapping, field positioning, and decision notes are maintained
-locally and are intentionally excluded from the published repository.
+suite. The timed S01-S21 talk script is tracked and synchronized into Reveal
+speaker notes before every presentation workflow. Other presenter mapping,
+field positioning, and decision notes remain local.
 
 | Document | State |
 |---|---|
@@ -299,6 +300,7 @@ locally and are intentionally excluded from the published repository.
 | `docs/operations/preview-register.md` | Implemented — every preview API version, pinned constraint and non-version prerequisite in one place |
 | `docs/operations/production-readiness.md` | Implemented |
 | `docs/demo/runbook.md` | Implemented — including the questions you will be asked |
+| `docs/presentation-mapping/talk-script.md` | Implemented — canonical 25-minute spoken sequence synchronized into S01-S21 speaker notes |
 | `CODE_OF_CONDUCT.md` | Absent |
 | Disaster recovery guidance | Absent — no RPO, no RTO, no tested restore |
 | Operations runbook / on-call | Absent |
