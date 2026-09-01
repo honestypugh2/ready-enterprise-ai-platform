@@ -1,4 +1,4 @@
-# ready-enterprise-ai-platform
+# Ready Enterprise AI Platform
 
 **Reference implementation for the session _"Beyond the Agent: Enterprise AI Architecture Patterns and Production Readiness."_**
 
