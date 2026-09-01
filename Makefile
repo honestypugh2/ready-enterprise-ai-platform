@@ -17,6 +17,7 @@ PY := $(UV) run
 API_HOST ?= 127.0.0.1
 API_PORT ?= 8000
 WEB_DIR := apps/web
+DECK_DIR := presentation
 SCENARIO ?= major-defect
 REPORT ?= reports/evaluation-report.json
 
