@@ -270,7 +270,7 @@ The development infrastructure is deployed in the repo-owned `rg-reap-dev` resou
 | `docker-compose.yml` | Implemented | ◔ Checked | Config-valid, never run. Depends on the image above |
 | `azure.yaml` (azd) | Implemented | ◔ Checked | Never run. `scripts/deploy.sh` is the reviewed path |
 | `.github/workflows/` | Implemented | ○ Written | **Never executed on GitHub.** Every command was verified locally; the workflows have not run |
-| `.github/dependabot.yml` | Implemented | ○ Written | uv, npm, actions, docker |
+| Dependabot | Absent, deliberately | — | Removed 2026-10-02 by owner decision. No version updates, security updates or alerts; dependencies are upgraded by hand and checked by `pip-audit` and `npm audit` |
 | `.devcontainer/` | Implemented | ○ Written | Never opened |
 | `scripts/scan-secrets.sh` | Implemented | ◑ Tested | Runs in git mode; found a true positive on first execution |
 | `scripts/validate-bicep.sh` | Implemented | ◑ Tested | Validates 15 templates + 3 parameter files |
