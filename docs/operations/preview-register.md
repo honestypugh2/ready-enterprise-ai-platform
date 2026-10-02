@@ -94,8 +94,8 @@ Things that will block a deployment for reasons unrelated to a version number.
 | `vitest` | `^3.2.4` | Current |
 
 `npm audit` reports zero vulnerabilities as of the last review. Routine
-upgrades are manual: Dependabot version updates are off. Dependabot alerts
-and security-fix pull requests are on.
+upgrades are manual: Dependabot version and security updates are off during
+development. Dependabot alerts are on.
 
 ## 7. What this register does not cover
 

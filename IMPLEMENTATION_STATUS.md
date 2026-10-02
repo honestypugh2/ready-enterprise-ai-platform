@@ -270,7 +270,7 @@ The development infrastructure is deployed in the repo-owned `rg-reap-dev` resou
 | `docker-compose.yml` | Implemented | ◔ Checked | Config-valid, never run. Depends on the image above |
 | `azure.yaml` (azd) | Implemented | ◔ Checked | Never run. `scripts/deploy.sh` is the reviewed path |
 | `.github/workflows/` | Implemented | ○ Written | Ran on GitHub once, on 2026-09-01, and failed. **GitHub Actions is now disabled for the repository**, so none of them run, including the weekly scheduled dependency audit. Every command was verified locally |
-| Dependabot | Alerts and security updates only | ◔ Checked | Enabled 2026-10-02 in repository settings and confirmed through the GitHub API, with secret scanning and push protection. The dependency graph resolved all 148 Python, 327 npm and 10 Actions dependencies, with 0 open alerts. Version updates are off by owner decision (`.github/dependabot.yml` removed). No alert or security-fix pull request has been observed yet |
+| Dependabot | Alerts only | ◔ Checked | Alerts enabled 2026-10-02 in repository settings and confirmed through the GitHub API, with secret scanning and push protection. The dependency graph resolved all 148 Python, 327 npm and 10 Actions dependencies, with 0 open alerts. Version and security updates are off by owner decision during development (`.github/dependabot.yml` removed), so Dependabot opens no pull requests. No alert has been observed yet |
 | `.devcontainer/` | Implemented | ○ Written | Never opened |
 | `scripts/scan-secrets.sh` | Implemented | ◑ Tested | Runs in git mode; found a true positive on first execution |
 | `scripts/validate-bicep.sh` | Implemented | ◑ Tested | Validates 15 templates + 3 parameter files |
