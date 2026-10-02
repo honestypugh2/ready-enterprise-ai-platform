@@ -179,10 +179,19 @@ Bus, Storage and App Insights ingestion.
 
 ## Supply chain
 
-**Mitigation.** `uv.lock` pins with hashes; `pip-audit --strict` and
-`npm audit` in CI; CodeQL across Python, TypeScript and Actions; SBOM published
-on every push to `main`. Dependabot is disabled, so dependency and security
-updates are applied by hand.
+**Mitigation.** `uv.lock` pins with hashes. GitHub Dependabot alerts watch
+every Python, npm and Actions dependency and raise an alert when a new advisory
+affects one. Dependabot security updates open a pull request only when a fixed
+version exists; version updates are deliberately off, so there is no routine
+upgrade traffic. Secret scanning and push protection block credentials before
+they land. These follow control DS-2 of the Microsoft cloud security benchmark
+v2.
+
+**Not running.** GitHub Actions is disabled for this repository, so the
+`pip-audit`, `npm audit`, CodeQL and SBOM jobs in `.github/workflows/` do not
+run, including the weekly scheduled audit. `make security` runs the audits
+locally. There is no pull-request gate: a dependency with a known
+vulnerability can still be merged.
 
 ## Summary of unmitigated risks
 
@@ -194,7 +203,7 @@ updates are applied by hand.
 | Audit deletion | Immutability written in Bicep, never deployed |
 | Prompt injection by novel phrasing | Not detected; contained architecturally |
 | Real connector failure modes | Unbuilt and therefore unknown |
-| Unpatched dependencies | **No automated updates or alerts.** A vulnerability is caught only when `pip-audit` or `npm audit` runs |
+| Unpatched dependencies | **Detected, not gated.** Alerts and security-fix pull requests are on; nothing blocks merging a vulnerable dependency, and an alert is acted on only when someone reads it |
 
 These are ordered the same way in `IMPLEMENTATION_STATUS.md`. If this document
 and that one ever disagree, that one is authoritative.

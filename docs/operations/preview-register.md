@@ -93,8 +93,9 @@ Things that will block a deployment for reasons unrelated to a version number.
 | `eslint` | `^10.9.1` | Moved from 9 after npm warned that 9 is no longer supported |
 | `vitest` | `^3.2.4` | Current |
 
-`npm audit` reports zero vulnerabilities as of the last review. Updates are
-manual; Dependabot is disabled for this repository.
+`npm audit` reports zero vulnerabilities as of the last review. Routine
+upgrades are manual: Dependabot version updates are off. Dependabot alerts
+and security-fix pull requests are on.
 
 ## 7. What this register does not cover
 
