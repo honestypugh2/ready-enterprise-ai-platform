@@ -181,8 +181,8 @@ Bus, Storage and App Insights ingestion.
 
 **Mitigation.** `uv.lock` pins with hashes; `pip-audit --strict` and
 `npm audit` in CI; CodeQL across Python, TypeScript and Actions; SBOM published
-on every push to `main`; Dependabot with security updates ungrouped so they
-arrive alone.
+on every push to `main`. Dependabot is disabled, so dependency and security
+updates are applied by hand.
 
 ## Summary of unmitigated risks
 
@@ -194,6 +194,7 @@ arrive alone.
 | Audit deletion | Immutability written in Bicep, never deployed |
 | Prompt injection by novel phrasing | Not detected; contained architecturally |
 | Real connector failure modes | Unbuilt and therefore unknown |
+| Unpatched dependencies | **No automated updates or alerts.** A vulnerability is caught only when `pip-audit` or `npm audit` runs |
 
 These are ordered the same way in `IMPLEMENTATION_STATUS.md`. If this document
 and that one ever disagree, that one is authoritative.
