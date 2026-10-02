@@ -14,8 +14,8 @@ identically for a policy engine covered by 98 tests and for a Bicep template
 that had only ever been parsed. Both were "Complete". That is exactly the
 elision this document exists to prevent, so the two are now separated.
 
-- **Last verified:** 2026-09-01
-- **Verified by:** local quality gates, deployment `reap-dev-final`, a live CLI run, and a local presenter-console rehearsal against `rg-reap-dev`
+- **Last verified:** 2026-10-01
+- **Verified by:** local quality gates, deployment `reap-dev-final`, a live CLI run, a local presenter-console rehearsal against `rg-reap-dev`, and a live exercise of the `reap-dev-apim` gateway after the 2026-10-01 GA migration
 - **Execution mode:** `local_mock` by default; the live run used Azure AI Search, Foundry, and Application Insights while keeping the detector and approver synthetic and D365 in dry run
 
 ---
@@ -24,8 +24,10 @@ elision this document exists to prevent, so the two are now separated.
 
 > **This repository's development infrastructure is deployed in `rg-reap-dev`.**
 > The live replenishment path has observed Azure AI Search retrieval, a Foundry
-> `gpt-4o-mini` completion, and an Application Insights trace. AML scoring,
-> Service Bus messaging, APIM policy application, application hosting, and every
+> `gpt-4o-mini` completion, and an Application Insights trace. The AI Gateway
+> policy has been applied to `reap-dev-apim` and observed limiting tokens per
+> caller and publishing token telemetry. AML scoring, Service Bus messaging,
+> gateway Entra validation and content safety, application hosting, and every
 > real system-of-record write remain unproven.
 
 The governance core is heavily tested offline. The live proof is narrow: it
@@ -34,10 +36,10 @@ posture.
 
 | Proof level | What it means | Where it applies |
 |---|---|---|
-| ⬤ **Proven** | Executed against the real dependency, result observed | Search retrieval, Foundry completion, correlated Application Insights trace, and the governed dry-run replenishment chain |
+| ⬤ **Proven** | Executed against the real dependency, result observed | Search retrieval, Foundry completion, correlated Application Insights trace, the governed dry-run replenishment chain, and the AI Gateway's token limiting and attribution telemetry |
 | ◑ **Tested** | Executed offline against fixtures, with automated tests asserting the behaviour | The governance core: contracts, policy, approvals, the writer, audit, retrieval trimming, redaction |
 | ◔ **Checked** | Parsed, compiled or schema-validated. Never executed | Bicep templates, parameter files, compose config, documentation links |
-| ○ **Written** | Source exists. Never executed or validated in any way | Every Azure adapter, the APIM policy, the KQL queries, the CI workflows, the container image |
+| ○ **Written** | Source exists. Never executed or validated in any way | Every other Azure adapter, the gateway's Entra and content-safety branches, five of the six KQL queries, the CI workflows, the container image |
 | — **Absent** | Named somewhere; no code exists | Terraform parity, DR guidance, on-call runbook, `CODE_OF_CONDUCT.md` |
 
 Deliberately no counts: they would need hand-maintaining and would drift, which
@@ -77,20 +79,21 @@ detection.
 
 | Check | Command | Result | Proof |
 |---|---|---|---|
-| Lint + format | `make lint` | Clean, 120 files | ◑ |
-| Static types | `make typecheck` | mypy `--strict`, 101 source files | ◑ |
-| Unit | `pytest tests/unit` | 98 passed | ◑ |
-| Contract | `pytest tests/contract` | 31 passed | ◑ |
+| Lint + format | `make lint` | Clean, 124 files | ◑ |
+| Static types | `make typecheck` | mypy `--strict`, 102 source files | ◑ |
+| Unit | `pytest tests/unit` | 103 passed | ◑ |
+| Contract | `pytest tests/contract` | 138 passed, including 52 gateway-policy assertions across all four composable policy variants | ◑ |
 | Security | `pytest tests/security` | 80 passed | ◑ |
-| Integration (offline) | `pytest tests/integration` | 60 passed | ◑ |
+| Integration (offline) | `pytest tests/integration` | 65 passed | ◑ |
 | Resilience | `pytest tests/resilience` | 20 passed | ◑ |
-| **Total** | `pytest tests` | **289 passed** | ◑ |
+| **Total** | `pytest tests` | **406 passed** | ◑ |
 | Evaluation gate | `make eval` | PASS, 16 cases, 7 blocking graders | ◑ |
-| Secret scan | `make secrets` | Clean, 240 tracked files, 6 reviewed exceptions | ◑ |
-| Demo | `reap demo run` × 7 | All complete, audit chains verify | ◑ |
-| Dependency audit | `pip-audit --strict` | No known vulnerabilities | ◑ |
+| Secret scan | `make secrets` | Clean, 6 reviewed exceptions | ◑ |
+| Demo | `reap demo run` × 8 | All complete, audit chains verify, re-run after the 2026-10-01 SDK upgrade | ◑ |
+| Dependency audit | `pip-audit --strict` | No known vulnerabilities, after the 2026-10-01 SDK upgrade | ◑ |
 | Frontend | `npm lint/typecheck/test/build` | Clean, 0 npm audit findings | ◑ |
-| Bicep | `make infra-lint` | 15 templates + 3 params compile | ◔ |
+| Bicep | `make infra-lint` | 16 templates + 4 params compile, no warnings | ◔ |
+| AI Gateway, live | 14 requests through `reap-dev-apim`; see section 4 | Policy applied on GA `2024-05-01`; every expected response observed | ⬤ |
 | Compose | `docker compose config` | Valid, 3 services | ◔ |
 | Doc links | link checker | 94/94 resolve | ◔ |
 
@@ -205,7 +208,7 @@ host deployment.
 
 - **Proven by:** one root span per transaction with every step a child; redaction in the formatter, so no call site can bypass it. A `LoggerAdapter` bug that silently dropped caller-supplied fields was found and fixed.
 - **Proven live by:** the synthetic governed replenishment transaction exported to `reap-dev-appi` and was queried by correlation and trace ID in `reap-dev-law`; transaction, reasoning, validation, and action spans were observed.
-- **Gap:** metrics are in-process counters. The six repository KQL files have not all been exercised.
+- **Gap:** metrics are in-process counters. Only `cost-per-completed-task.kql` has been run against live telemetry; the other five repository KQL files have not.
 - **Next:** execute every checked-in query before quoting operational coverage.
 
 ### Events — Partial · ◑ Tested / ○ Written
@@ -218,7 +221,8 @@ host deployment.
 ### Cost attribution — Partial by design · ◑ Tested
 
 - **Proven by:** units and token counts recorded per correlation id; `frontier_calls_avoided` counted; the summary **refuses** a currency figure without a supplied rate card.
-- **Gap:** **no price appears anywhere in this repository, deliberately.** Token counts come from the mock reasoner and are fictional.
+- **Proven live by:** the gateway attributed real `gpt-4o-mini` token counts per caller, workload and correlation id in `reap-dev-appi`, and the chargeback query summed them. Probe traffic only; no workflow transaction has yet been routed through the gateway.
+- **Gap:** **no price appears anywhere in this repository, deliberately.** Token counts from the application path come from the mock reasoner and are fictional.
 - **If deployed:** the *method* is sound. Every number it currently produces is a demonstration.
 - **Next:** supply a real rate card and real token counts before quoting cost per task.
 
@@ -248,9 +252,9 @@ host deployment.
 
 ### Known API gaps
 
-- **No authentication.** No token validation exists anywhere in this repository.
+- **No authentication in the application.** The API validates no token. The gateway's Entra JWT branch exists but has never been applied, because no app registration exists.
 - **Transaction storage is an in-process LRU map**, bounded at 1,000 entries after a review found it unbounded. It does not survive a restart and is per-replica, so the approval flow fails on a second replica.
-- **Rate limiting is per-replica and in-process**, with stale-window eviction added after the same review. The real control is the APIM gateway.
+- **Rate limiting is per-replica and in-process**, with stale-window eviction added after the same review. The real control is the APIM gateway, whose per-caller token limit has been observed live in dev. The application does not yet route its model calls through it.
 
 ---
 
@@ -264,8 +268,11 @@ The development infrastructure is deployed in the repo-owned `rg-reap-dev` resou
 | `infra/demo/` Search-only Bicep | Implemented | ◔ Checked | Superseded by the isolated full dev deployment |
 | `infra/environments/{dev,test,prod}` | Implemented | ◔ Checked | All three validate. Owner and cost centre are `CHANGE-ME` by design |
 | Private endpoints, DNS, VNet | Implemented | ◔ Checked | Derived from the environment, so prod cannot omit them |
-| `infra/apim/ai-gateway.policy.xml` | Implemented | ○ Written | APIM service exists, but policy application is disabled until the Entra app registration and logger auth are supplied |
-| `infra/monitor/queries/*.kql` | Implemented | ○ Written | Six queries. **Not one has been run** |
+| `infra/apim/ai-gateway.policy.xml` | Implemented | ⬤ Proven for the base variant | Applied to `reap-dev-apim` on GA `2024-05-01` and exercised with 14 `gpt-4o-mini` requests on 2026-10-01. Observed: `400` without `api-version`; `200` through the gateway's managed identity; `x-tokens-consumed`/`x-tokens-remaining` per caller, with separate counters per identity; `429` with `Retry-After` once a caller's budget ran out while another caller continued; an untrusted caller's `x-user-id` ignored, so a spoofed or rotated value was charged to that caller's own subscription bucket; `x-user-id` honoured with a separate `sub:<id>:user:` budget only once the subscription was registered as a trusted proxy; an unregistered `x-workload-id` reported as `unregistered`; a caller-supplied `Authorization` header ignored; `x-ms-region` and `apim-request-id` stripped; an `on-error` body naming the refusing step without upstream text. A code review found the `x-user-id` bypass before commit; it was fixed and re-verified live. **Not observed:** the Entra JWT branch (no app registration), content safety (off by default; needs one portal step), and a circuit-breaker trip
+| `infra/apim/fragments/entra-jwt.xml` | Implemented | ◑ Tested | Composed only when both Entra values are set. Never applied: no app registration exists |
+| `infra/apim/fragments/content-safety.xml` | Implemented, opt-in | ◑ Tested | `enableContentSafety=false` by default. The backend's managed-identity credential is a portal step that no ARM API version exposes; see `infra/README.md` |
+| Gateway token telemetry | Implemented | ⬤ Proven | `llm-emit-token-metric` published `Total`, `Prompt` and `Completion Tokens` to `reap-dev-appi` through the managed-identity logger, with only bounded dimensions. All 9 requests of the first run were logged unsampled with `x-user-id`, `x-workload-id`, `x-correlation-id` and `x-tokens-consumed`, and without bodies |
+| `infra/monitor/queries/*.kql` | Implemented | ⬤ 1 of 6 / ○ 5 of 6 | `cost-per-completed-task.kql` ran against live gateway telemetry: 7 successful transactions, 105 tokens, the `429` excluded, no currency without a rate card. Its completion join was not exercised, because the probe requests were not workflow transactions. The other five queries have never been run |
 | `Dockerfile` | Implemented | ○ Written | **Build fails locally** — buildkit cannot reach PyPI. An environment fault, but the image has never been built |
 | `docker-compose.yml` | Implemented | ◔ Checked | Config-valid, never run. Depends on the image above |
 | `azure.yaml` (azd) | Implemented | ◔ Checked | Never run. `scripts/deploy.sh` is the reviewed path |
@@ -342,7 +349,7 @@ rather than invented, the file that adapted it says so. Full detail in
 | Source | What was reused |
 |---|---|
 | [foundry-workload-studio](https://github.com/honestypugh2/foundry-workload-studio) | Subscription-scoped Bicep layout; WAF-aligned `modules/` + `environments/` split |
-| [wordpress-chatbot](https://github.com/honestypugh2/wordpress-chatbot) | APIM AI Gateway: identity precedence (Entra `oid` › `x-user-id` › subscription), per-user token limiting, token-metric dimensions, chargeback KQL shape |
+| [wordpress-chatbot](https://github.com/honestypugh2/wordpress-chatbot) | APIM AI Gateway: identity precedence (Entra `oid` › `x-user-id` › subscription), per-user token limiting, token metrics (now bounded dimensions only; per-transaction attribution moved to logged headers), chargeback KQL shape |
 | [warehouse-replenishment-ai-demo](https://github.com/honestypugh2/warehouse-replenishment-ai-demo) | The governance spine: a deterministic validator ahead of reasoning, one component permitted to mutate the system of record, human approval before any write, citations on every recommendation, mock-first offline default |
 | [foundry-copilot-hr-policy-knowledge](https://github.com/honestypugh2/foundry-copilot-hr-policy-knowledge) | uv project shape, retrieval pattern taxonomy, two-phase provision/deploy discipline, the "not production-ready" disclosure convention |
 

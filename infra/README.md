@@ -29,6 +29,7 @@ infra/
 │   └── rbac.bicep              least-privilege role assignments
 ├── environments/{dev,test,prod}/main.bicepparam
 ├── apim/ai-gateway.policy.xml  token limits, cost attribution, egress hygiene
+├── apim/fragments/             Entra JWT and content-safety blocks, composed in only when configured
 └── monitor/queries/*.kql       the six queries an operator actually opens
 ```
 
@@ -113,7 +114,8 @@ The items below are the ones that will stop an infrastructure deployment.
 | Item | Status |
 |---|---|
 | `Microsoft.CognitiveServices/accounts/projects` | GA surface, evolving. Verify against your subscription's available API versions before deploying. |
-| Entra JWT validation at the gateway | **Requires an app registration** for `entra-audience`. APIM resolves named values at apply time, so the policy can only be applied after they exist. Until then the gateway attributes by header and subscription id. |
+| Entra JWT validation at the gateway | **Requires an app registration** for `entra-audience`. APIM resolves named values at apply time, so `apim.bicep` composes the JWT branch into the policy only when both `entraOpenIdConfig` and `entraAudience` are set. Until then the policy still applies and budgets each caller by its APIM subscription. `x-user-id` is honoured only from subscriptions listed in `trustedProxySubscriptionIds` (empty by default), because from any other caller it would let them spend someone else's budget or mint unlimited budgets by rotating it. |
+| Gateway content safety (`enableContentSafety`) | **Off by default; one portal step.** `llm-content-safety` needs its backend's authorization credentials set to the gateway's managed identity. No ARM API version, GA or preview through `2025-09-01-preview`, exposes that property. After deploying with `enableContentSafety=true`, open the APIM **Backends** blade, select `content-safety`, and under **Authorization credentials > Managed identity** enable the system-assigned identity with resource ID `https://cognitiveservices.azure.com`. Until then every request on the route fails closed. |
 | APIM Developer tier | Provisions in roughly 45 minutes. `deployApiGateway` is off by default outside prod for that reason. |
 | APIM `Internal` VNet mode | **Premium only.** With private networking on a non-Premium tier the gateway stays `External`; the template does this rather than failing, and this table is where that is stated. |
 | Reaching a private environment | With `deployPrivateNetworking`, Container Apps ingress is internal and every data-plane endpoint is private. You will need a jump host, VPN or ExpressRoute to reach any of it — including to run `reap doctor`. |

@@ -50,7 +50,7 @@ authoritative if the two ever disagree.
 1. **Durable approval storage.** Everything in the governance chain depends on the approval record existing. In-memory or file-backed does not survive a restart.
 2. **Authentication.** The API identifies callers by an HTTP header. Replace `get_identity` with Entra token validation at the gateway.
 3. **A real system-of-record connector.** The refusal chain is proven against in-memory mocks; the integration is unbuilt.
-4. **Host and exercise the application.** Development resources exist in `rg-reap-dev`, but the API, worker, and web application are not hosted, and AML, Service Bus, and APIM policy execution remain unproven.
+4. **Host and exercise the application.** Development resources exist in `rg-reap-dev`, but the API, worker, and web application are not hosted, and AML and Service Bus execution remain unproven. The AI Gateway policy has been exercised in dev with probe traffic; route the reasoning adapter's model calls through it, and apply its Entra validation, before relying on it.
 5. **Re-baseline every evaluation threshold** against real components.
 
 ## Operational readiness

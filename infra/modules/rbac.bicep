@@ -23,6 +23,11 @@ param foundryName string
 param keyVaultName string
 param serviceBusNamespaceName string
 
+@description('Gateway identity. Empty when no gateway is deployed.')
+param apimPrincipalId string = ''
+param appInsightsName string
+param enableContentSafety bool = false
+
 resource storage 'Microsoft.Storage/storageAccounts@2025-01-01' existing = {
   name: storageName
 }
@@ -41,6 +46,10 @@ resource vault 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
 
 resource serviceBus 'Microsoft.ServiceBus/namespaces@2024-01-01' existing = {
   name: serviceBusNamespaceName
+}
+
+resource appInsights 'Microsoft.Insights/components@2020-02-02' existing = {
+  name: appInsightsName
 }
 
 // The API reads the corpus and the evidence store. It never writes them.
@@ -148,6 +157,42 @@ resource apiSecretsUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleIds.keyVaultSecretsUser)
     principalId: apiPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// The gateway calls model deployments with its own identity. Inference only:
+// it cannot list keys, deploy models or change the account.
+resource apimOpenAiUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(apimPrincipalId)) {
+  scope: foundry
+  name: guid(foundry.id, apimPrincipalId, roleIds.cognitiveServicesOpenAiUser)
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleIds.cognitiveServicesOpenAiUser)
+    principalId: apimPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Content Safety is not covered by the OpenAI role, so the broader data-plane
+// role is granted only when moderation is switched on.
+resource apimContentSafetyUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(apimPrincipalId) && enableContentSafety) {
+  scope: foundry
+  name: guid(foundry.id, apimPrincipalId, roleIds.cognitiveServicesUser)
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleIds.cognitiveServicesUser)
+    principalId: apimPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Application Insights accepts Entra-authenticated telemetry only, so the
+// gateway's logger and token metrics publish under this role.
+resource apimMetricsPublisher 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(apimPrincipalId)) {
+  scope: appInsights
+  name: guid(appInsights.id, apimPrincipalId, roleIds.monitoringMetricsPublisher)
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleIds.monitoringMetricsPublisher)
+    principalId: apimPrincipalId
     principalType: 'ServicePrincipal'
   }
 }

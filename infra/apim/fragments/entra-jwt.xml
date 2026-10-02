@@ -1,0 +1,19 @@
+      <!-- Inserted by infra/modules/apim.bicep only when both Entra named values
+           are supplied. Without them this branch would reference named values
+           that do not exist, and APIM refuses the whole policy at apply time. -->
+      <when condition='@(context.Request.Headers.ContainsKey("Authorization"))'>
+        <validate-jwt header-name="Authorization"
+                      failed-validation-httpcode="401"
+                      failed-validation-error-message="Unauthorized"
+                      require-expiration-time="true"
+                      require-signed-tokens="true"
+                      output-token-variable-name="callerJwt">
+          <openid-config url="{{entra-openid-config}}" />
+          <audiences>
+            <audience>{{entra-audience}}</audience>
+          </audiences>
+        </validate-jwt>
+        <!-- Read from the validated token object, never re-parsed from the raw header. -->
+        <set-variable name="userId"
+                      value='@("oid:" + ((Jwt)context.Variables["callerJwt"]).Claims.GetValueOrDefault("oid", "unknown"))' />
+      </when>
