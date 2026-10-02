@@ -206,7 +206,7 @@ vulnerability can still be merged.
 | Audit deletion | Immutability written in Bicep, never deployed |
 | Prompt injection by novel phrasing | Not detected; contained architecturally |
 | Real connector failure modes | Unbuilt and therefore unknown |
-| Unpatched dependencies | **Detected, fixed by hand, not gated.** The first scan's 28 alerts (1 critical) are fixed on `feat/apim-ai-gateway-parity`. Alerts are on; fixes are manual, nothing blocks merging a vulnerable dependency, and an alert is acted on only when someone reads it |
+| Unpatched dependencies | **Detected, fixed by hand, not gated.** The first scan's 28 alerts (1 critical) were fixed in #19, leaving 0 open on 2026-10-02. Alerts are on; fixes are manual, nothing blocks merging a vulnerable dependency, and an alert is acted on only when someone reads it |
 
 These are ordered the same way in `IMPLEMENTATION_STATUS.md`. If this document
 and that one ever disagree, that one is authoritative.
