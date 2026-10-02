@@ -49,8 +49,9 @@ GA, but young enough that properties are still being added.
 | `opentelemetry-instrumentation-fastapi>=0.65b0,<0.66` | `pyproject.toml` | Instrumentation ships on a **beta version line** by upstream convention. The explicit prerelease bound is what lets the resolver accept it without globally enabling prereleases | Enabling prereleases globally would pull beta versions of unrelated packages |
 | `opentelemetry-instrumentation-httpx>=0.65b0,<0.66` | `pyproject.toml` | Same | Same |
 
-`.github/dependabot.yml` ignores minor updates to `opentelemetry-*` for this
-reason. The ceiling and the exporter move together, deliberately.
+Raise these bounds by hand, together with `azure-monitor-opentelemetry`, and
+confirm with `make install-all`. The ceiling and the exporter move together,
+deliberately.
 
 ## 4. Optional extras
 
@@ -129,8 +130,10 @@ A preview capability is adopted only when all of these hold:
 | `eslint` | `^10.9.1` | Moved from 9 after npm warned that 9 is no longer supported |
 | `vitest` | `^3.2.4` | Current |
 
-`npm audit` reports zero vulnerabilities as of the last review. Dependabot
-groups minor and patch updates weekly.
+GitHub Dependabot alerts flag undici, brace-expansion and vitest advisories
+that the last local `npm audit` did not. Routine
+upgrades are manual: Dependabot version and security updates are off during
+development. Dependabot alerts are on.
 
 ## 8. What this register does not cover
 
@@ -144,5 +147,5 @@ Re-read this page when any of these happens:
 
 1. `make install-all` fails to resolve
 2. `make infra-lint` reports a schema error on a preview type
-3. Dependabot opens a pull request touching a pinned constraint
+3. A dependency upgrade touches a pinned constraint
 4. Before the first deployment to any new subscription

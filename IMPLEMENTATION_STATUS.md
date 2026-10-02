@@ -90,7 +90,7 @@ detection.
 | Evaluation gate | `make eval` | PASS, 16 cases, 7 blocking graders | ◑ |
 | Secret scan | `make secrets` | Clean, 6 reviewed exceptions | ◑ |
 | Demo | `reap demo run` × 8 | All complete, audit chains verify, re-run after the 2026-10-01 SDK upgrade | ◑ |
-| Dependency audit | `pip-audit --strict` | No known vulnerabilities, after the 2026-10-01 SDK upgrade | ◑ |
+| Dependency audit | `pip-audit --strict` | Reported none after the 2026-10-01 SDK upgrade, but GitHub's advisory database flags 28 open alerts on `main` as of 2026-10-02; see the Dependabot row | ◑ |
 | Frontend | `npm lint/typecheck/test/build` | Clean, 0 npm audit findings | ◑ |
 | Bicep | `make infra-lint` | 16 templates + 4 params compile, no warnings | ◔ |
 | AI Gateway, live | 14 requests through `reap-dev-apim`; see section 4 | Policy applied on GA `2024-05-01`; every expected response observed | ⬤ |
@@ -276,8 +276,8 @@ The development infrastructure is deployed in the repo-owned `rg-reap-dev` resou
 | `Dockerfile` | Implemented | ○ Written | **Build fails locally** — buildkit cannot reach PyPI. An environment fault, but the image has never been built |
 | `docker-compose.yml` | Implemented | ◔ Checked | Config-valid, never run. Depends on the image above |
 | `azure.yaml` (azd) | Implemented | ◔ Checked | Never run. `scripts/deploy.sh` is the reviewed path |
-| `.github/workflows/` | Implemented | ○ Written | **Never executed on GitHub.** Every command was verified locally; the workflows have not run |
-| `.github/dependabot.yml` | Implemented | ○ Written | uv, npm, actions, docker |
+| `.github/workflows/` | Implemented | ○ Written | Ran on GitHub once, on 2026-09-01, and failed. **GitHub Actions is now disabled for the repository**, so none of them run, including the weekly scheduled dependency audit. Every command was verified locally |
+| Dependabot | Alerts only | ⬤ Proven for alerting | Alerts enabled 2026-10-02 in repository settings and confirmed through the GitHub API, with secret scanning and push protection. The dependency graph resolved all 148 Python, 327 npm and 10 Actions dependencies, and the first scan raised **28 open alerts (1 critical, 8 high, 16 medium, 3 low)** across PyJWT, urllib3, oauthlib, PyPDF2, undici, brace-expansion and vitest, all transitive except PyPDF2 and vitest. Two have no fixed version (PyJWT GHSA-gvp8-978c-rx2q, PyPDF2 GHSA-4vvm-4w3v-6mr8). None has been remediated. Version and security updates are off by owner decision during development (`.github/dependabot.yml` removed), so Dependabot opens no pull requests. Two security pull requests opened in the minutes security updates were on (#16 PyJWT, #17 urllib3) were closed unmerged |
 | `.devcontainer/` | Implemented | ○ Written | Never opened |
 | `scripts/scan-secrets.sh` | Implemented | ◑ Tested | Runs in git mode; found a true positive on first execution |
 | `scripts/validate-bicep.sh` | Implemented | ◑ Tested | Validates 15 templates + 3 parameter files |
