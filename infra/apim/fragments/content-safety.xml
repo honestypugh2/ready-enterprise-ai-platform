@@ -1,0 +1,14 @@
+    <!-- Inserted by infra/modules/apim.bicep only when enableContentSafety is
+         true. Prompts are checked here; enforce-on-completions also checks the
+         model's answer. If Content Safety is unreachable the policy errors and
+         the request fails closed through <on-error>, rather than reaching the
+         model unchecked. The backend's managed-identity credential is a portal
+         step: no ARM API version exposes it. See infra/README.md. -->
+    <llm-content-safety backend-id="content-safety" shield-prompt="true" enforce-on-completions="true">
+      <categories output-type="EightSeverityLevels">
+        <category name="Hate" threshold="{{content-safety-threshold}}" />
+        <category name="SelfHarm" threshold="{{content-safety-threshold}}" />
+        <category name="Sexual" threshold="{{content-safety-threshold}}" />
+        <category name="Violence" threshold="{{content-safety-threshold}}" />
+      </categories>
+    </llm-content-safety>

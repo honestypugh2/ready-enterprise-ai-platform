@@ -15,9 +15,10 @@ param costCenter = 'CC12345'
 param publisherEmail = 'ai-platform@microsoft.com'
 param publisherName = 'AI Platform Team'
 
-// APIM requires a real Entra app registration and an Entra-compatible logger
-// configuration before its policy can be applied. The service is not part of
-// the live replenishment path.
+// The gateway policy applies without Entra: the JWT branch is composed in only
+// when the Entra named values exist. The gateway is still not part of the live
+// replenishment path, so a fresh dev deployment skips its ~45-minute
+// provisioning. Set true to manage the existing dev gateway from here.
 param deployApiGateway = false
 param deployMachineLearning = true
 

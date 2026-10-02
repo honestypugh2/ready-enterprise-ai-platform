@@ -8,14 +8,99 @@
   safety live here rather than in the application.
 
   Adapted from the per-user cost attribution pattern in
-  honestypugh2/wordpress-chatbot (MIT). See infra/apim/README.md.
+  honestypugh2/wordpress-chatbot (MIT). See
+  docs/architecture/reuse-and-attribution.md.
 
-  Identity precedence: Entra `oid` (tamper-proof) > `x-user-id` (only when set
-  by a trusted server-side component) > subscription id (coarse fallback).
+  infra/modules/apim.bicep composes this document: each `@fragment` marker is
+  replaced with a file from fragments/ when its feature is configured, and
+  removed otherwise. tests/contract/test_ai_gateway_policy.py composes every
+  variant the same way and checks it.
+
+  Identity precedence: Entra `oid` (tamper-proof, only when Entra is
+  configured) > `x-user-id` (honoured only from an allow-listed trusted-proxy
+  subscription) > subscription id. Each source has its own key prefix, so one
+  kind of identity can never be spelled as another.
+
+  Attributes holding policy expressions are single-quoted so the document stays
+  well-formed XML and can be parsed by the contract test.
 -->
 <policies>
   <inbound>
     <base />
+
+    <!-- First, so that every later failure, including a rejected token, can
+         still be correlated. -->
+    <set-variable name="correlationId" value='@(context.Request.Headers.GetValueOrDefault("x-correlation-id", context.RequestId.ToString()))' />
+
+    <!-- Resolve the caller BEFORE the backend credential is attached. The
+         managed-identity token below overwrites Authorization; checking for a
+         caller token after that point would validate the gateway's own token.
+         An unauthenticated caller is attributed to its subscription, or to
+         `anonymous`, and rate-limited as one bucket, never given a free pass. -->
+    <choose>
+      <!-- @fragment entra-jwt -->
+      <!-- Only a server-side proxy that validated its own session may name the
+           user, and only through a subscription registered as such. From any
+           other caller the header is ignored: honouring it would let a caller
+           spend someone else's budget, or mint unlimited budgets by rotating it. -->
+      <when condition='@(!string.IsNullOrEmpty(context.Request.Headers.GetValueOrDefault("x-user-id", "")) &amp;&amp; "{{trusted-proxy-subscription-ids}}".Split(&apos;,&apos;).Contains(context.Subscription?.Id ?? ""))'>
+        <set-variable name="userId" value='@("sub:" + context.Subscription.Id + ":user:" + context.Request.Headers.GetValueOrDefault("x-user-id", ""))' />
+      </when>
+      <otherwise>
+        <set-variable name="userId" value='@("sub:" + (context.Subscription?.Id ?? "anonymous"))' />
+      </otherwise>
+    </choose>
+
+    <!-- Bounded, because it becomes a metric dimension: API Management keeps
+         100 distinct values per dimension and silently drops the rest. A
+         workload the caller names but nobody registered is reported as such. -->
+    <set-variable name="workloadId" value='@{
+      var requested = context.Request.Headers.GetValueOrDefault("x-workload-id", "manufacturing-quality");
+      return "{{allowed-workload-ids}}".Split(&apos;,&apos;).Contains(requested) ? requested : "unregistered";
+    }' />
+
+    <!-- The backend contract is versioned. A request that does not say which
+         version it speaks is refused here rather than defaulted upstream. -->
+    <choose>
+      <when condition='@(string.IsNullOrEmpty(context.Request.Url.Query.GetValueOrDefault("api-version", "")))'>
+        <return-response>
+          <set-status code="400" reason="Bad Request" />
+          <set-header name="Content-Type" exists-action="override">
+            <value>application/json</value>
+          </set-header>
+          <set-header name="x-correlation-id" exists-action="override">
+            <value>@((string)context.Variables["correlationId"])</value>
+          </set-header>
+          <set-body>{"error":"api_version_required"}</set-body>
+        </return-response>
+      </when>
+    </choose>
+
+    <!-- A budget the application cannot raise for itself. The counter key is
+         the resolved identity, so one caller cannot consume another's quota.
+         Placed before content safety so a flood of prompts is refused before
+         it can generate moderation calls. -->
+    <llm-token-limit counter-key='@((string)context.Variables["userId"])'
+                     tokens-per-minute="{{tokens-per-minute-per-user}}"
+                     estimate-prompt-tokens="true"
+                     tokens-consumed-header-name="x-tokens-consumed"
+                     remaining-tokens-header-name="x-tokens-remaining" />
+
+    <!-- @fragment content-safety -->
+
+    <!-- Bounded dimensions only. Per-user and per-transaction attribution is
+         carried by the logged x-user-id, x-correlation-id and x-tokens-consumed
+         response headers instead: a per-request metric dimension would exceed
+         the 100-value limit within minutes and be discarded without error.
+         See infra/monitor/queries/cost-per-completed-task.kql. -->
+    <llm-emit-token-metric namespace="genai">
+      <dimension name="API ID" />
+      <dimension name="WorkloadId" value='@((string)context.Variables["workloadId"])' />
+      <dimension name="ModelDeployment" value='@(context.Request.MatchedParameters.GetValueOrDefault("deployment-id", "unknown"))' />
+    </llm-emit-token-metric>
+
+    <!-- Explicit, so the backend's circuit breaker always applies. -->
+    <set-backend-service backend-id="foundry" />
 
     <!-- The backend is reached with the gateway's managed identity. No key
          appears in this policy, in a named value, or in any request. -->
@@ -26,57 +111,10 @@
       <value>@("Bearer " + (string)context.Variables["managed-id-access-token"])</value>
     </set-header>
 
-    <!-- Resolve the caller. An unauthenticated caller is attributed to
-         `anonymous` and rate-limited as one bucket, never given a free pass. -->
-    <choose>
-      <when condition="@(context.Request.Headers.ContainsKey("Authorization"))">
-        <validate-jwt header-name="Authorization"
-                      failed-validation-httpcode="401"
-                      failed-validation-error-message="Unauthorized"
-                      require-expiration-time="true"
-                      require-signed-tokens="true">
-          <openid-config url="{{entra-openid-config}}" />
-          <audiences>
-            <audience>{{entra-audience}}</audience>
-          </audiences>
-        </validate-jwt>
-        <set-variable name="userId"
-                      value="@(context.Request.Headers.GetValueOrDefault("Authorization","").Split(' ').Last().AsJwt()?.Claims.GetValueOrDefault("oid", "unknown"))" />
-      </when>
-      <when condition="@(context.Request.Headers.ContainsKey("x-user-id"))">
-        <!-- Safe only when a trusted server-side proxy sets this after
-             validating its own session. Never trust it from a browser. -->
-        <set-variable name="userId" value="@(context.Request.Headers.GetValueOrDefault("x-user-id",""))" />
-      </when>
-      <otherwise>
-        <set-variable name="userId" value="@(context.Subscription?.Id ?? "anonymous")" />
-      </otherwise>
-    </choose>
-
-    <set-variable name="workloadId" value="@(context.Request.Headers.GetValueOrDefault("x-workload-id","manufacturing-quality"))" />
-    <set-variable name="correlationId" value="@(context.Request.Headers.GetValueOrDefault("x-correlation-id", context.RequestId.ToString()))" />
-
-    <!-- A budget the application cannot raise for itself. The counter key is
-         the resolved identity, so one caller cannot consume another's quota. -->
-    <azure-openai-token-limit counter-key="@((string)context.Variables["userId"])"
-                              tokens-per-minute="{{tokens-per-minute-per-user}}"
-                              estimate-prompt-tokens="true"
-                              tokens-consumed-header-name="x-tokens-consumed"
-                              remaining-tokens-header-name="x-tokens-remaining" />
-
-    <!-- Emits to Application Insights with the dimensions cost attribution
-         needs. See infra/monitor/queries/cost-per-completed-task.kql. -->
-    <azure-openai-emit-token-metric namespace="genai">
-      <dimension name="UserId" value="@((string)context.Variables["userId"])" />
-      <dimension name="WorkloadId" value="@((string)context.Variables["workloadId"])" />
-      <dimension name="CorrelationId" value="@((string)context.Variables["correlationId"])" />
-      <dimension name="ModelDeployment" value="@(context.Request.MatchedParameters.GetValueOrDefault("deployment-id","unknown"))" />
-    </azure-openai-emit-token-metric>
-
-    <!-- Semantic caching is deliberately NOT enabled by default. A cache hit
-         on a governed explanation returns evidence that was retrieved for a
-         different transaction, under a different entitlement. Enable it only
-         for a route whose responses carry no entitlement-scoped content. -->
+    <!-- Semantic caching is deliberately NOT enabled. A cache hit on a governed
+         explanation returns evidence that was retrieved for a different
+         transaction, under a different entitlement. Enable it only on a
+         separate route whose responses carry no entitlement-scoped content. -->
   </inbound>
 
   <backend>
@@ -86,9 +124,12 @@
   <outbound>
     <base />
     <!-- Echoed so a caller can reconcile its own cost record against the
-         gateway's, and so a mismatch is visible rather than assumed. -->
+         gateway's, and logged by the API diagnostic for attribution. -->
     <set-header name="x-user-id" exists-action="override">
       <value>@((string)context.Variables["userId"])</value>
+    </set-header>
+    <set-header name="x-workload-id" exists-action="override">
+      <value>@((string)context.Variables["workloadId"])</value>
     </set-header>
     <set-header name="x-correlation-id" exists-action="override">
       <value>@((string)context.Variables["correlationId"])</value>
@@ -102,14 +143,16 @@
   <on-error>
     <base />
     <set-header name="x-correlation-id" exists-action="override">
-      <value>@((string)context.Variables["correlationId"])</value>
+      <value>@((string)context.Variables.GetValueOrDefault("correlationId", context.RequestId.ToString()))</value>
     </set-header>
-    <!-- An upstream error body can echo the prompt. Return a shape, not the
-         provider's text. -->
+    <!-- An upstream error body can echo the prompt. Return a shape naming the
+         gateway step that refused, never the provider's text. -->
     <set-body>@{
       return new JObject(
-        new JProperty("error", "upstream_unavailable"),
-        new JProperty("correlation_id", (string)context.Variables["correlationId"])
+        new JProperty("error", "gateway_rejected"),
+        new JProperty("source", context.LastError?.Source ?? "unknown"),
+        new JProperty("reason", context.LastError?.Reason ?? "unknown"),
+        new JProperty("correlation_id", (string)context.Variables.GetValueOrDefault("correlationId", context.RequestId.ToString()))
       ).ToString();
     }</set-body>
   </on-error>

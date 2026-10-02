@@ -4,20 +4,30 @@
 // system that answers briefly and wrongly. Cost per *completed task* is the
 // number a business can compare against the manual process it replaced.
 //
+// Tokens come from gateway request logs, not token metrics. Metric dimensions
+// are capped at 100 distinct values and the excess is dropped silently, so a
+// per-transaction metric under-reports without error. The API diagnostic logs
+// these response headers on every request, unsampled and without bodies.
+// Refused requests are excluded: their x-tokens-consumed is an estimate for a
+// prompt that never reached the model.
+//
 // Prices come from the caller's own rate card. This repository ships no price
 // and asserts none; replace the two values below with your negotiated rates.
 let price_per_1k_input = 0.0;   // <-- your rate card
 let price_per_1k_output = 0.0;  // <-- your rate card
 let window = 1d;
 let tokens =
-    AppMetrics
-    | where Name == "Total Tokens"
-    | extend CorrelationId = tostring(Properties["CorrelationId"]),
-             WorkloadId    = tostring(Properties["WorkloadId"]),
-             UserId        = tostring(Properties["UserId"])
-    | summarize tokens = sum(Sum) by CorrelationId, WorkloadId, UserId;
+    AppRequests
+    | where TimeGenerated > ago(window)
+    | where Name has "/chat/completions" and toint(ResultCode) between (200 .. 299)
+    | extend CorrelationId = tostring(Properties["Response-x-correlation-id"]),
+             WorkloadId    = tostring(Properties["Response-x-workload-id"]),
+             UserId        = tostring(Properties["Response-x-user-id"]),
+             Tokens        = tolong(Properties["Response-x-tokens-consumed"])
+    | summarize tokens = sum(Tokens) by CorrelationId, WorkloadId, UserId;
 let completed =
     AppTraces
+    | where TimeGenerated > ago(window)
     | where Properties.event == "workflow_completed" or Properties.outcome == "completed"
     | extend CorrelationId = tostring(Properties["correlation_id"])
     | distinct CorrelationId;
@@ -28,7 +38,7 @@ tokens
     total_tokens        = sum(tokens),
     transactions        = dcount(CorrelationId),
     completed_tasks     = dcountif(CorrelationId, task_completed)
-    by WorkloadId, bin(now(), window)
+    by WorkloadId
 // A completion rate below 1.0 is the interesting number: it is the cost of
 // work the platform started and did not finish.
 | extend completion_rate = round(todouble(completed_tasks) / transactions, 3)

@@ -201,5 +201,7 @@ runtime variation justifies its coordination and failure surface.
 **"Has any of this been deployed?"**
 Yes. The development stack is provisioned in `rg-reap-dev`. The live demo has
 observed Search retrieval, a Foundry completion, and an Application Insights
-trace. AML scoring, Service Bus messaging, APIM policy execution, hosted
-applications, and real D365 writes remain unproven.
+trace. Separately, the AI Gateway policy has been observed limiting tokens per
+caller in dev, but the demo's model calls do not pass through it. AML scoring,
+Service Bus messaging, gateway Entra validation, hosted applications, and real
+D365 writes remain unproven.

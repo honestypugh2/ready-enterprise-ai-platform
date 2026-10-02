@@ -31,9 +31,10 @@ works out per-user cost attribution through the APIM AI Gateway.
 
 **Reused:** the identity-precedence chain (Entra `oid` › `x-user-id` ›
 subscription id) and its security reasoning — that `x-user-id` is safe only
-when set by a trusted server-side component; per-user token limiting keyed on
-the resolved identity; `azure-openai-emit-token-metric` with attribution
-dimensions; and the shape of the chargeback KQL.
+when set by a trusted server-side component, now enforced by honouring it only from allow-listed proxy subscriptions; per-user token limiting keyed on
+the resolved identity; token metrics with attribution dimensions (now
+`llm-emit-token-metric`, the provider-neutral successor to
+`azure-openai-emit-token-metric`); and the shape of the chargeback KQL.
 
 The justifying argument is reused directly, because it is correct: *the gateway
 is the single hop that sees both the caller identity and the model's token
@@ -43,9 +44,15 @@ best-effort and spoofable; gateway-side logging is authoritative.*
 **Where:** `infra/apim/ai-gateway.policy.xml`,
 `infra/monitor/queries/cost-per-completed-task.kql`.
 
-**Extended:** a `CorrelationId` dimension, so cost attributes to a *transaction*
-and not only to a user — which is what makes cost per completed task
-computable. Semantic caching is deliberately left off; see the policy comment.
+**Extended:** attribution to a *transaction* and not only to a user — which is
+what makes cost per completed task computable. It was first written as
+`UserId` and `CorrelationId` metric dimensions. API Management keeps 100
+distinct values per dimension and silently discards the rest, so a per-request
+dimension loses data within minutes and reports nothing. Metrics now carry only
+bounded dimensions (API, registered workload, model deployment); per-user and
+per-transaction tokens come from the `x-user-id`, `x-correlation-id` and
+`x-tokens-consumed` response headers, logged unsampled by the API diagnostic.
+Semantic caching is deliberately left off; see the policy comment.
 
 ### [warehouse-replenishment-ai-demo](https://github.com/honestypugh2/warehouse-replenishment-ai-demo) — MIT
 

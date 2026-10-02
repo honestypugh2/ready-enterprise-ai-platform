@@ -56,6 +56,12 @@ param entraOpenIdConfig string = ''
 @description('Application ID URI of the app registration fronting the gateway API.')
 param entraAudience string = ''
 
+@description('Moderate gateway prompts and completions with Azure AI Content Safety. Requires one portal step; see infra/README.md.')
+param enableContentSafety bool = false
+
+@description('APIM subscription ids of trusted server-side proxies allowed to name the end user with x-user-id. Empty means no caller may.')
+param trustedProxySubscriptionIds string[] = []
+
 @description('Leaving dry run on is the safe default. Turn it off deliberately, per environment, and record who did.')
 param connectorDryRun bool = true
 
@@ -191,10 +197,13 @@ module apim 'modules/apim.bicep' = if (deployApiGateway) {
     workspaceId: monitor.outputs.result.workspaceId
     foundryEndpoint: foundry.outputs.foundryEndpoint
     appInsightsId: monitor.outputs.result.appInsightsId
+    appInsightsConnectionString: monitor.outputs.result.appInsightsConnectionString
     publisherEmail: publisherEmail
     publisherName: publisherName
     entraOpenIdConfig: entraOpenIdConfig
     entraAudience: entraAudience
+    enableContentSafety: enableContentSafety
+    trustedProxySubscriptionIds: trustedProxySubscriptionIds
     apimSubnetId: privateNetworking ? network!.outputs.apimSubnetId : ''
   }
 }
@@ -211,6 +220,9 @@ module rbac 'modules/rbac.bicep' = {
     foundryName: foundry.outputs.foundryName
     keyVaultName: last(split(keyvault.outputs.vaultId, '/'))
     serviceBusNamespaceName: servicebus.outputs.namespaceName
+    apimPrincipalId: deployApiGateway ? apim!.outputs.apimPrincipalId : ''
+    appInsightsName: last(split(monitor.outputs.result.appInsightsId, '/'))
+    enableContentSafety: deployApiGateway && enableContentSafety
   }
 }
 
