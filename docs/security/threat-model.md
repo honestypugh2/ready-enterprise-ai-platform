@@ -206,7 +206,7 @@ vulnerability can still be merged.
 | Audit deletion | Immutability written in Bicep, never deployed |
 | Prompt injection by novel phrasing | Not detected; contained architecturally |
 | Real connector failure modes | Unbuilt and therefore unknown |
-| Unpatched dependencies | **Detected, not fixed or gated.** Alerts are on; fixes are manual, nothing blocks merging a vulnerable dependency, and an alert is acted on only when someone reads it |
+| Unpatched dependencies | **Present.** 28 open alerts on the first scan, 1 critical. **Detected, not fixed or gated.** Alerts are on; fixes are manual, nothing blocks merging a vulnerable dependency, and an alert is acted on only when someone reads it |
 
 These are ordered the same way in `IMPLEMENTATION_STATUS.md`. If this document
 and that one ever disagree, that one is authoritative.

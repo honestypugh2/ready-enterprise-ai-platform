@@ -93,7 +93,8 @@ Things that will block a deployment for reasons unrelated to a version number.
 | `eslint` | `^10.9.1` | Moved from 9 after npm warned that 9 is no longer supported |
 | `vitest` | `^3.2.4` | Current |
 
-`npm audit` reports zero vulnerabilities as of the last review. Routine
+GitHub Dependabot alerts flag undici, brace-expansion and vitest advisories
+that the last local `npm audit` did not. Routine
 upgrades are manual: Dependabot version and security updates are off during
 development. Dependabot alerts are on.
 
