@@ -38,7 +38,7 @@ dependencies = [
   # them without globally enabling prereleases. 0.65b0 pairs with SDK 1.44.
   "opentelemetry-instrumentation-fastapi>=0.65b0,<0.66",
   "opentelemetry-instrumentation-httpx>=0.65b0,<0.66",
-  "pypdf2>=3.0.1",
+  "pypdf>=6.0.0",
 ]
 
 [project.optional-dependencies]

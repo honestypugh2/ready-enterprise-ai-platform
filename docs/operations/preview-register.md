@@ -128,10 +128,9 @@ A preview capability is adopted only when all of these hold:
 | `react`, `react-dom` | `^19.2.8` | Current major |
 | `vite` | `^8.2.2` | Moved from 7 during the build; 8 is current |
 | `eslint` | `^10.9.1` | Moved from 9 after npm warned that 9 is no longer supported |
-| `vitest` | `^3.2.4` | Current |
+| `vitest` | `^4.1.11` | Moved from 3 for GHSA-82fw-gwwq-j7x9. 4.1.11 is the smallest fixed release; 5.x adds a breaking change for no security gain |
 
-GitHub Dependabot alerts flag undici, brace-expansion and vitest advisories
-that the last local `npm audit` did not. Routine
+`npm audit` reports zero vulnerabilities after the 2026-10-02 fixes. Routine
 upgrades are manual: Dependabot version and security updates are off during
 development. Dependabot alerts are on.
 
